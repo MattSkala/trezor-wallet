@@ -1,0 +1,3 @@
+[submodule "trezor-android"]
+	path = trezor-android
+	url = git@github.com:MattSkala/trezor-android.git

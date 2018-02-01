@@ -1,1 +1,3 @@
-include ':app'
+include ':app', ':trezor-intents', ':trezor-lib'
+project(':trezor-intents').projectDir = new File(settingsDir, 'trezor-android/trezor-intents')
+project(':trezor-lib').projectDir = new File(settingsDir, 'trezor-android/trezor-lib')
