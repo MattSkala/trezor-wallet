@@ -28,7 +28,7 @@ allprojects {
         architecture_components_version = "1.1.0"
         buildToolsVersion = "26.0.2"
         sdk = 27
-        minsdk = 15
+        minsdk = 21
     }
 }
 
