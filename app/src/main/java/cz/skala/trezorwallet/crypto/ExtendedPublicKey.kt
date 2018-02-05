@@ -33,6 +33,7 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
      * Computes a child extended public key from the parent extended public key. It is only defined
      * for non-hardened child keys.
      */
+    @Throws(InvalidKeyException::class)
     fun deriveChildKey(index: Int): ExtendedPublicKey {
         val parentNode = this
 
@@ -52,7 +53,7 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
         val curveParams = CustomNamedCurves.getByName(SECP256K1)
 
         if (ilInt > curveParams.n) {
-            throw InvalidKeyException("il is larger that the curve order")
+            throw InvalidKeyException("I_L is larger that the curve order")
         }
 
         val childPublicKey = FixedPointCombMultiplier()
@@ -60,9 +61,18 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
                 .add(parentNode.publicKey)
 
         if (childPublicKey.isInfinity) {
-            throw InvalidKeyException("The child key public key point is at infinity")
+            throw InvalidKeyException("The child public key point is at infinity")
         }
 
         return ExtendedPublicKey(childPublicKey, ir)
+    }
+
+    /**
+     * Encodes the public key as a Bitcoin address in Base58Check format.
+     */
+    fun getAddress(): String {
+        val publicKeyEncoded = publicKey.getEncoded(true)
+        val hash160 = hash160(publicKeyEncoded)
+        return encodeBase58Check(hash160, 0)
     }
 }

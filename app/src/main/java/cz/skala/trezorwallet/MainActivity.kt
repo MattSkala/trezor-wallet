@@ -10,6 +10,7 @@ import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyRequest
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
+import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 import java.security.InvalidKeyException
 
@@ -19,6 +20,8 @@ class MainActivity : AppCompatActivity() {
 
         private const val REQUEST_GET_PUBLIC_KEY = 1
     }
+
+    private var accountIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,44 +35,54 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
-        startAccountDiscovery()
+        btnAccountDiscovery.setOnClickListener {
+            discoverAccount(0)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GetPublicKeyResult
+
                 AlertDialog.Builder(this)
                         .setMessage(result.publicKey.xpub)
                         .show()
 
-                startAccountDiscoveryForAccount(result.publicKey.node)
+                discoverAddressesForAccount(result.publicKey.node)
+
+                if (accountIndex < 2) {
+                    discoverAccount(++accountIndex)
+                }
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
-    private fun startAccountDiscovery() {
+    private fun discoverAccount(i: Int) {
         val purpose = ExtendedPublicKey.HARDENED_IDX + 44 // BIP44
         val coinType = ExtendedPublicKey.HARDENED_IDX + 0 // Bitcoin
-        val account = ExtendedPublicKey.HARDENED_IDX + 0
+
+        Log.d(TAG, "Account #" + i)
+        val account = ExtendedPublicKey.HARDENED_IDX + i
         val path = intArrayOf(purpose.toInt(), coinType.toInt(), account.toInt())
         val intent = TrezorActivity.createIntent(this@MainActivity,
-                GetPublicKeyRequest(path))
+                GetPublicKeyRequest(path, i == 0))
         startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
     }
 
-    private fun startAccountDiscoveryForAccount(node: TrezorType.HDNodeType) {
+    private fun discoverAddressesForAccount(node: TrezorType.HDNodeType) {
         try {
             val accountNode = ExtendedPublicKey(
                     ExtendedPublicKey.decodePublicKey(node.publicKey.toByteArray()),
                     node.chainCode.toByteArray())
             val externalChainNode = accountNode.deriveChildKey(0)
 
-            val addressIndex = 0
-            val addressNode = externalChainNode.deriveChildKey(addressIndex)
-
-            // TODO: serialize address
+            for (addressIndex in 0..20) {
+                val addressNode = externalChainNode.deriveChildKey(addressIndex)
+                val address = addressNode.getAddress()
+                Log.d(TAG, "/$addressIndex $address")
+            }
         } catch (e: InvalidKeyException) {
             e.printStackTrace()
         }

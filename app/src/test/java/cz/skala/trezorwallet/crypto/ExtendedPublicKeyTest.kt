@@ -3,7 +3,7 @@ package cz.skala.trezorwallet.crypto
 import org.junit.Assert
 import org.junit.Test
 
-class HDKeyDerivationTest {
+class ExtendedPublicKeyTest {
     @Test
     fun isHardened() {
         Assert.assertEquals(false, ExtendedPublicKey.isHardened(0))
