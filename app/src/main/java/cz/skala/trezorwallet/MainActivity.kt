@@ -10,9 +10,22 @@ import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyRequest
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
+import cz.skala.trezorwallet.insight.InsightApiService
+import cz.skala.trezorwallet.insight.response.AddrsTxsResponse
 import kotlinx.android.synthetic.main.activity_main.*
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
 import java.security.InvalidKeyException
+
+
+
+
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -23,6 +36,8 @@ class MainActivity : AppCompatActivity() {
 
     private var accountIndex = 0
 
+    private lateinit var insightApi: InsightApiService
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -31,6 +46,8 @@ class MainActivity : AppCompatActivity() {
             Timber.plant(Timber.DebugTree())
         }
 
+        insightApi = createInsightApiService()
+
         Log.d(TAG, "onCreate")
 
         setContentView(R.layout.activity_main)
@@ -38,6 +55,33 @@ class MainActivity : AppCompatActivity() {
         btnAccountDiscovery.setOnClickListener {
             discoverAccount(0)
         }
+
+        btnFetchTransactions.setOnClickListener {
+            val addresses = mutableListOf<String>()
+            addresses.add("13Sed6Hr1Gfoz6gNPQ8CpF8hMcL92G7knv")
+            addresses.add("1L6kamXM4GfiU5FEnFnqLef5zPK4vzvSgd")
+            addresses.add("128sCPddjEdzddDbsmQMi143tdm8Fbdcrz")
+            addresses.add("1J7t4Y4pXXhv2eqRzJQhRaeuaxxozTEDiX")
+            addresses.add("1AAgdW9ieFb8EAzd75L7VaaEDoUZCCARwa")
+            fetchTransactions(addresses)
+        }
+    }
+
+    private fun createInsightApiService(): InsightApiService {
+        val httpClient = OkHttpClient.Builder()
+
+        // logging interceptor
+        val logging = HttpLoggingInterceptor()
+        logging.level = HttpLoggingInterceptor.Level.BODY
+        httpClient.addInterceptor(logging)
+
+        val retrofit = Retrofit.Builder()
+                .baseUrl("https://btc-bitcore1.trezor.io/api/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(httpClient.build())
+                .build()
+
+        return retrofit.create(InsightApiService::class.java)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -51,9 +95,11 @@ class MainActivity : AppCompatActivity() {
 
                 discoverAddressesForAccount(result.publicKey.node)
 
+                /*
                 if (accountIndex < 2) {
                     discoverAccount(++accountIndex)
                 }
+                */
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
@@ -78,13 +124,56 @@ class MainActivity : AppCompatActivity() {
                     node.chainCode.toByteArray())
             val externalChainNode = accountNode.deriveChildKey(0)
 
+            val addresses = mutableListOf<String>()
             for (addressIndex in 0..20) {
                 val addressNode = externalChainNode.deriveChildKey(addressIndex)
                 val address = addressNode.getAddress()
+                addresses.add(address)
                 Log.d(TAG, "/$addressIndex $address")
             }
+
+            fetchTransactions(addresses)
         } catch (e: InvalidKeyException) {
             e.printStackTrace()
         }
+    }
+
+    private fun fetchTransactions(addresses: List<String>) {
+        insightApi.getAddrsTxs(addresses.joinToString(","))
+                .enqueue(object : Callback<AddrsTxsResponse> {
+                    override fun onResponse(call: Call<AddrsTxsResponse>, response: Response<AddrsTxsResponse>) {
+                        val body = response.body()
+                        if (response.isSuccessful && body != null) {
+                            var received = 0.0
+                            var sent = 0.0
+                            var unspent = 0.0
+
+                            body.items.forEach { tx ->
+                                tx.vout.forEach { txOut ->
+                                    txOut.scriptPubKey.addresses?.forEach { addr ->
+                                        if (addresses.contains(addr)) {
+                                            received += txOut.value.toDouble()
+
+                                            if (txOut.spentHeight != null) {
+                                                sent += txOut.value.toDouble()
+                                            } else {
+                                                unspent += txOut.value.toDouble()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Log.d("MainActivity", "totalItems:" + body.totalItems)
+                            Log.d("MainActivity", "received:" + received)
+                            Log.d("MainActivity", "sent:" + sent)
+                            Log.d("MainActivity", "unspent:" + unspent)
+                        }
+                    }
+
+                    override fun onFailure(call: Call<AddrsTxsResponse>, t: Throwable) {
+                        t.printStackTrace()
+                    }
+                })
     }
 }
