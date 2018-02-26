@@ -13,6 +13,8 @@ import kotlinx.android.synthetic.main.item_account.view.*
  */
 class AccountsAdapter : RecyclerView.Adapter<AccountsAdapter.ViewHolder>() {
     var accounts: List<Account> = mutableListOf()
+    var selectedPosition = 0
+    var onItemClickListener: ((account: Account) -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -21,7 +23,12 @@ class AccountsAdapter : RecyclerView.Adapter<AccountsAdapter.ViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(accounts[position])
+        holder.bind(accounts[position], selectedPosition == position)
+        holder.itemView.setOnClickListener {
+            selectedPosition = holder.adapterPosition
+            notifyDataSetChanged()
+            onItemClickListener?.invoke(accounts[selectedPosition])
+        }
     }
 
     override fun getItemCount(): Int {
@@ -29,8 +36,9 @@ class AccountsAdapter : RecyclerView.Adapter<AccountsAdapter.ViewHolder>() {
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun bind(account: Account) = with(itemView) {
-            txtAccountLabel.text = account.label ?: "Account #${account.index + 1}"
+        fun bind(account: Account, selected: Boolean) = with(itemView) {
+            txtAccountLabel.text = account.label ?: "Legacy Account #${account.index + 1}"
+            isSelected = selected
         }
     }
 }

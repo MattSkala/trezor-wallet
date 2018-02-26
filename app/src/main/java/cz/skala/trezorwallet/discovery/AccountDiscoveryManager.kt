@@ -1,43 +1,18 @@
 package cz.skala.trezorwallet.discovery
 
-import android.arch.persistence.room.Room
-import android.content.Context
 import android.util.Log
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
-import cz.skala.trezorwallet.data.AppDatabase
-import cz.skala.trezorwallet.insight.InsightApiService
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import java.security.InvalidKeyException
 
 
 /**
  * Account discovery algorithm as defined in BIP 44.
  */
-class AccountDiscoveryManager(context: Context) {
+class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
     companion object {
         const val GAP_SIZE = 20
         const val TAG = "AccountDiscoveryManager"
-    }
-
-    private val insightApi: InsightApiService
-    private val transactionFetcher: TransactionFetcher
-    private val database: AppDatabase
-
-    init {
-        insightApi = createInsightApiService()
-
-        transactionFetcher = TransactionFetcher()
-        transactionFetcher.insightApi = insightApi
-
-        database = Room.databaseBuilder(context,
-                AppDatabase::class.java, "trezor-wallet").build()
-    }
-
-    fun startAccountDiscovery() {
     }
 
     /**
@@ -67,24 +42,7 @@ class AccountDiscoveryManager(context: Context) {
             addrs.add(address)
             Log.d(TAG, "/$addressIndex $address")
         }
-        val page = transactionFetcher.fetchTransactionsPage(addrs, 0, 50)
+        val page = fetcher.fetchTransactionsPage(addrs, 0, 50)
         return page.isNotEmpty()
-    }
-
-    private fun createInsightApiService(): InsightApiService {
-        val httpClient = OkHttpClient.Builder()
-
-        // logging interceptor
-        val logging = HttpLoggingInterceptor()
-        logging.level = HttpLoggingInterceptor.Level.BODY
-        httpClient.addInterceptor(logging)
-
-        val retrofit = Retrofit.Builder()
-                .baseUrl("https://btc-bitcore1.trezor.io/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .client(httpClient.build())
-                .build()
-
-        return retrofit.create(InsightApiService::class.java)
     }
 }

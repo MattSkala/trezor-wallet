@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.os.Bundle
+import android.support.v4.app.Fragment
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
@@ -11,11 +12,13 @@ import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
 import com.github.salomonbrys.kodein.*
-import com.github.salomonbrys.kodein.android.ActivityInjector
+import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
+import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
+import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
@@ -23,18 +26,22 @@ import org.jetbrains.anko.coroutines.experimental.bg
 import org.jetbrains.anko.defaultSharedPreferences
 
 
-class MainActivity : AppCompatActivity(), ActivityInjector {
+class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     companion object {
         private const val TAG = "MainActivity"
 
         private const val ITEM_FORGET = 10
+
+        private const val TAB_TRANSACTIONS = 0
+        private const val TAB_RECEIVE = 1
+        private const val TAB_SEND = 2
     }
 
     override val injector = KodeinInjector()
     private val database: AppDatabase by injector.instance()
     private val viewModel: MainViewModel by injector.instance()
 
-    private lateinit var accountsAdapter: AccountsAdapter
+    private val accountsAdapter = AccountsAdapter()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<MainViewModel>() with provider {
@@ -44,9 +51,8 @@ class MainActivity : AppCompatActivity(), ActivityInjector {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
         initializeInjector()
+        super.onCreate(savedInstanceState)
 
         if (!defaultSharedPreferences.getBoolean(TrezorApplication.PREF_INITIALIZED, false)) {
             startGetStartedActivity()
@@ -57,39 +63,40 @@ class MainActivity : AppCompatActivity(), ActivityInjector {
 
         initToolbar()
 
-        accountsAdapter = AccountsAdapter()
+        accountsAdapter.onItemClickListener = {
+            viewModel.selectedAccountPosition.value = accountsAdapter.selectedPosition
+            drawerLayout.closeDrawers()
+        }
+
         accountsList.adapter = accountsAdapter
         accountsList.layoutManager = LinearLayoutManager(this)
 
         viewModel.accounts.observe(this, Observer {
             if (it != null) {
                 showAccounts(it)
+                showSelectedAccount()
             }
         })
 
-        /*
-        btnAccountDiscovery.setOnClickListener {
-            discoverAccount(0)
-        }
-
-        btnFetchTransactions.setOnClickListener {
-            async(UI) {
-                val balance = bg {
-                    val accounts = database.accountDao().getAll()
-                    Log.d(TAG, "accounts count: " + accounts.size)
-                    var balance = -1.0
-                    if (accounts.isNotEmpty()) {
-                        val account = accounts[0]
-                        val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(account.publicKey), account.chainCode)
-                        val (txs, addresses) = transactionFetcher.fetchTransactionsForAccount(accountNode)
-                        balance = transactionFetcher.calculateBalance(txs, addresses)
-                    }
-                    balance
-                }.await()
-                Toast.makeText(this@MainActivity, "Balance: $balance BTC", Toast.LENGTH_SHORT).show()
+        viewModel.selectedAccountPosition.observe(this, Observer {
+            if (it != null) {
+                showSelectedAccount()
             }
+        })
+
+        navigation.setOnNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.item_transactions -> {
+                    val accounts = viewModel.accounts.value!!
+                    val position = viewModel.selectedAccountPosition.value!!
+                    val accountId = accounts[position].id
+                    showAccount(accountId)
+                }
+                R.id.item_receive -> replaceFragment(Fragment())
+                R.id.item_send -> replaceFragment(Fragment())
+            }
+            true
         }
-        */
     }
 
     override fun onDestroy() {
@@ -147,27 +154,25 @@ class MainActivity : AppCompatActivity(), ActivityInjector {
         accountsAdapter.notifyDataSetChanged()
     }
 
-    /*
-    private fun discoverAddressesForAccount(node: TrezorType.HDNodeType) {
-        try {
-            val publicKey = node.publicKey.toByteArray()
-            val chainCode = node.chainCode.toByteArray()
+    private fun showAccount(accountId: String) {
+        val f = TransactionsFragment()
+        val args = Bundle()
+        args.putString(TransactionsFragment.ARG_ACCOUNT_ID, accountId)
+        f.arguments = args
+        replaceFragment(f)
+    }
 
-            val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
-
-            async (UI) {
-                val balance = bg {
-                    val account = Account(accountNode.getAddress(), publicKey, chainCode, 0, true, null)
-                    database.accountDao().insert(account)
-
-                    val (txs, addresses) = transactionFetcher.fetchTransactionsForAccount(accountNode)
-                    transactionFetcher.calculateBalance(txs, addresses)
-                }.await()
-                Toast.makeText(this@MainActivity, "Balance: $balance BTC", Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: InvalidKeyException) {
-            e.printStackTrace()
+    private fun showSelectedAccount() {
+        val accounts = viewModel.accounts.value
+        val selectedAccountPosition = viewModel.selectedAccountPosition.value
+        if (accounts != null && selectedAccountPosition != null && accounts.size > selectedAccountPosition) {
+            showAccount(accounts[selectedAccountPosition].id)
         }
     }
-    */
+
+    private fun replaceFragment(f: Fragment) {
+        val ft = supportFragmentManager.beginTransaction()
+        ft.replace(R.id.content, f)
+        ft.commit()
+    }
 }

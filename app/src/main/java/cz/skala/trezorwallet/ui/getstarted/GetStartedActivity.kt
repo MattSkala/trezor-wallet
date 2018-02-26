@@ -1,4 +1,4 @@
-package cz.skala.trezorwallet.ui
+package cz.skala.trezorwallet.ui.getstarted
 
 import android.app.Activity
 import android.content.Intent
@@ -19,6 +19,7 @@ import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
+import cz.skala.trezorwallet.ui.MainActivity
 import kotlinx.android.synthetic.main.activity_get_started.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async

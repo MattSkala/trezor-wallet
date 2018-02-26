@@ -32,7 +32,7 @@
                 android:resource="@xml/device_filter" />
         </activity>
 
-        <activity android:name=".ui.GetStartedActivity"/>
+        <activity android:name=".ui.getstarted.GetStartedActivity"/>
     </application>
 
 </manifest>

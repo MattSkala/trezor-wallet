@@ -18,6 +18,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts")
     fun getAllLiveData(): LiveData<List<Account>>
 
+    @Query("SELECT * FROM accounts WHERE id = :id")
+    fun getById(id: String): Account
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(account: Account)
 

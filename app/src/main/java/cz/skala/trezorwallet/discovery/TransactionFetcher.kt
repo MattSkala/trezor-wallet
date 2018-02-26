@@ -4,19 +4,16 @@ import android.util.Log
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.insight.response.Tx
-import java.util.*
 
 /**
  * A helper class for fetching transactions from Insight API.
  */
-class TransactionFetcher {
+class TransactionFetcher(val insightApi: InsightApiService) {
     companion object {
         private const val GAP_SIZE = 20
         private const val PAGE_SIZE = 50
         private const val TAG = "TransactionFetcher"
     }
-
-    lateinit var insightApi: InsightApiService
 
     /**
      * Fetches transactions for all active addresses in an account.
@@ -82,7 +79,7 @@ class TransactionFetcher {
         var sent = 0.0
 
         txs.forEach { tx ->
-            Log.d(TAG, "tx " + tx.txid + " " + Date(tx.blocktime * 1000))
+            //Log.d(TAG, "tx " + tx.txid + " " + Date(tx.blocktime * 1000))
             val isOutgoing = tx.vin.all { addresses.contains(it.addr) }
 
             tx.vout.forEach { txOut ->

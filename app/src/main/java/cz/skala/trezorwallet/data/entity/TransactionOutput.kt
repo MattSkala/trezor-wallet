@@ -9,7 +9,7 @@ import android.arch.persistence.room.Entity
 class TransactionOutput(
         val txid: String,
         val n: Int,
-        val addr: String,
+        val addr: String?,
         val value: Double,
         val spentTxId: String?
 )

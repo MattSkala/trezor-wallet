@@ -5,6 +5,7 @@ import android.arch.persistence.room.Room
 import com.github.salomonbrys.kodein.*
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
+import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.InsightApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -38,7 +39,11 @@ class TrezorApplication : Application(), KodeinAware {
         }
 
         bind<AccountDiscoveryManager>() with singleton {
-            AccountDiscoveryManager(applicationContext)
+            AccountDiscoveryManager(instance())
+        }
+
+        bind<TransactionFetcher>() with singleton {
+            TransactionFetcher(instance())
         }
     }
 

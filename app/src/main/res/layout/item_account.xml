@@ -1,27 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="56dp"
-    android:orientation="horizontal"
-    android:gravity="center_vertical">
+    android:background="@drawable/bg_item_account">
 
-    <TextView
-        android:id="@+id/txtAccountLabel"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:text="Account #0"
-        style="@style/TextAppearance.AppCompat.Body2"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:background="?selectableItemBackground">
 
-    <TextView
-        android:id="@+id/txtAccountBalance"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:text="0.00 BTC"
-        style="@style/TextAppearance.AppCompat.Body1"/>
-</LinearLayout>
+        <TextView
+            android:id="@+id/txtAccountLabel"
+            style="@style/TextAppearance.AppCompat.Body2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="24dp"
+            android:layout_marginStart="24dp"
+            android:layout_weight="1"
+            android:text="Account #0"
+            android:textColor="@drawable/text_item_account"/>
+
+        <TextView
+            android:id="@+id/txtAccountBalance"
+            style="@style/TextAppearance.AppCompat.Body1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="24dp"
+            android:layout_marginRight="24dp"
+            android:text="0.00 BTC"
+            android:textColor="@drawable/text_item_account_balance"/>
+    </LinearLayout>
+</FrameLayout>
