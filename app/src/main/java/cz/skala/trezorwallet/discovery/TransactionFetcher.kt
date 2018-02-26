@@ -12,6 +12,7 @@ import java.util.*
 class TransactionFetcher {
     companion object {
         private const val GAP_SIZE = 20
+        private const val PAGE_SIZE = 50
         private const val TAG = "TransactionFetcher"
     }
 
@@ -56,8 +57,18 @@ class TransactionFetcher {
     }
 
     private fun fetchTransactions(addresses: List<String>): List<Tx> {
-        val response = insightApi.getAddrsTxs(addresses.joinToString(","), 0, 50).execute()
-        // TODO: add pagination
+        val txs = mutableListOf<Tx>()
+        var from = 0
+        do {
+            val page = fetchTransactionsPage(addresses, from, from + PAGE_SIZE)
+            txs += page
+            from += PAGE_SIZE
+        } while (page.isNotEmpty())
+        return txs
+    }
+
+    fun fetchTransactionsPage(addresses: List<String>, from: Int, to: Int): List<Tx> {
+        val response = insightApi.getAddrsTxs(addresses.joinToString(","), from, to).execute()
         val body = response.body()
         if (response.isSuccessful && body != null) {
             return body.items

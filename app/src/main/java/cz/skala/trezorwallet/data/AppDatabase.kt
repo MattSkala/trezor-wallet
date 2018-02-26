@@ -5,7 +5,7 @@ import android.arch.persistence.room.RoomDatabase
 import cz.skala.trezorwallet.data.dao.AccountDao
 import cz.skala.trezorwallet.data.entity.Account
 
-@Database(entities = [Account::class], version = 1, exportSchema = false)
+@Database(entities = [Account::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
 }

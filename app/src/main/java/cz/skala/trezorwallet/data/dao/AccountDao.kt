@@ -14,6 +14,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts")
     fun getAll(): List<Account>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(account: Account)
+
+    @Query("DELETE FROM accounts")
+    fun deleteAll()
 }

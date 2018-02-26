@@ -1,75 +1,45 @@
 package cz.skala.trezorwallet.ui
 
-import android.arch.persistence.room.Room
 import android.content.Intent
 import android.os.Bundle
-import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
-import android.widget.Toast
-import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
-import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyRequest
-import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
-import com.satoshilabs.trezor.lib.protobuf.TrezorType
-import cz.skala.trezorwallet.BuildConfig
+import android.view.Menu
+import android.view.MenuItem
+import com.github.salomonbrys.kodein.KodeinInjector
+import com.github.salomonbrys.kodein.android.appKodein
+import com.github.salomonbrys.kodein.instance
 import cz.skala.trezorwallet.R
-import cz.skala.trezorwallet.crypto.ExtendedPublicKey
+import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.AppDatabase
-import cz.skala.trezorwallet.data.entity.Account
-import cz.skala.trezorwallet.discovery.TransactionFetcher
-import cz.skala.trezorwallet.insight.InsightApiService
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import org.jetbrains.anko.coroutines.experimental.bg
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import timber.log.Timber
-import java.security.InvalidKeyException
-
-
-
-
-
+import org.jetbrains.anko.defaultSharedPreferences
 
 
 class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
 
-        private const val REQUEST_GET_PUBLIC_KEY = 1
+        private const val ITEM_FORGET = 10
     }
 
-    private var accountIndex = 0
-
-    private lateinit var insightApi: InsightApiService
-
-    private lateinit var transactionFetcher: TransactionFetcher
-
-    private lateinit var database: AppDatabase
+    private val injector = KodeinInjector()
+    private val database: AppDatabase by injector.instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // TODO: move to application
-        if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
+        injector.inject(appKodein())
+
+        if (!defaultSharedPreferences.getBoolean(TrezorApplication.PREF_INITIALIZED, false)) {
+            startGetStartedActivity()
+            return
         }
-
-        insightApi = createInsightApiService()
-
-        transactionFetcher = TransactionFetcher()
-        transactionFetcher.insightApi = insightApi
-
-        database = Room.databaseBuilder(applicationContext,
-                AppDatabase::class.java, "trezor-wallet").build()
-
-        Log.d(TAG, "onCreate")
 
         setContentView(R.layout.activity_main)
 
+        /*
         btnAccountDiscovery.setOnClickListener {
             discoverAccount(0)
         }
@@ -91,58 +61,42 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Balance: $balance BTC", Toast.LENGTH_SHORT).show()
             }
         }
+        */
     }
 
-    private fun createInsightApiService(): InsightApiService {
-        val httpClient = OkHttpClient.Builder()
-
-        // logging interceptor
-        val logging = HttpLoggingInterceptor()
-        logging.level = HttpLoggingInterceptor.Level.BODY
-        httpClient.addInterceptor(logging)
-
-        val retrofit = Retrofit.Builder()
-                .baseUrl("https://btc-bitcore1.trezor.io/api/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .client(httpClient.build())
-                .build()
-
-        return retrofit.create(InsightApiService::class.java)
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, ITEM_FORGET, 0, "Forget device")
+        return super.onCreateOptionsMenu(menu)
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        when (requestCode) {
-            REQUEST_GET_PUBLIC_KEY -> if (resultCode == RESULT_OK) {
-                val result = TrezorActivity.getResult(data) as GetPublicKeyResult
-
-                AlertDialog.Builder(this)
-                        .setMessage(result.publicKey.xpub)
-                        .show()
-
-                discoverAddressesForAccount(result.publicKey.node)
-
-                /*
-                if (accountIndex < 2) {
-                    discoverAccount(++accountIndex)
-                }
-                */
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            ITEM_FORGET -> {
+                forgetDevice()
+                true
             }
-            else -> super.onActivityResult(requestCode, resultCode, data)
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
-    private fun discoverAccount(i: Int) {
-        val purpose = ExtendedPublicKey.HARDENED_IDX + 44 // BIP44
-        val coinType = ExtendedPublicKey.HARDENED_IDX + 0 // Bitcoin
-
-        Log.d(TAG, "Account #" + i)
-        val account = ExtendedPublicKey.HARDENED_IDX + i
-        val path = intArrayOf(purpose.toInt(), coinType.toInt(), account.toInt())
-        val intent = TrezorActivity.createIntent(this@MainActivity,
-                GetPublicKeyRequest(path, i == 0))
-        startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
+    private fun forgetDevice() {
+        async(UI) {
+            bg {
+                database.accountDao().deleteAll()
+                defaultSharedPreferences.edit()
+                        .putBoolean(TrezorApplication.PREF_INITIALIZED, false).apply()
+            }.await()
+            startGetStartedActivity()
+        }
     }
 
+    private fun startGetStartedActivity() {
+        val intent = Intent(this, GetStartedActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
+    /*
     private fun discoverAddressesForAccount(node: TrezorType.HDNodeType) {
         try {
             val publicKey = node.publicKey.toByteArray()
@@ -164,4 +118,5 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
     }
+    */
 }

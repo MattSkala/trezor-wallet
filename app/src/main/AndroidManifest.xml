@@ -12,7 +12,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:name=".TrezorApplication">
 
         <activity android:name=".ui.MainActivity">
             <intent-filter>
@@ -29,6 +30,8 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+
+        <activity android:name=".ui.GetStartedActivity"/>
     </application>
 
 </manifest>
