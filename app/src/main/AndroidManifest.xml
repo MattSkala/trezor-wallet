@@ -15,7 +15,8 @@
         android:theme="@style/AppTheme"
         android:name=".TrezorApplication">
 
-        <activity android:name=".ui.MainActivity">
+        <activity android:name=".ui.MainActivity"
+                  android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

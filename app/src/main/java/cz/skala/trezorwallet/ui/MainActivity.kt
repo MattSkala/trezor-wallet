@@ -1,36 +1,52 @@
 package cz.skala.trezorwallet.ui
 
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.os.Bundle
+import android.support.v4.view.GravityCompat
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
-import com.github.salomonbrys.kodein.KodeinInjector
-import com.github.salomonbrys.kodein.android.appKodein
-import com.github.salomonbrys.kodein.instance
+import com.github.salomonbrys.kodein.*
+import com.github.salomonbrys.kodein.android.ActivityInjector
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.entity.Account
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.async
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.jetbrains.anko.defaultSharedPreferences
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ActivityInjector {
     companion object {
         private const val TAG = "MainActivity"
 
         private const val ITEM_FORGET = 10
     }
 
-    private val injector = KodeinInjector()
+    override val injector = KodeinInjector()
     private val database: AppDatabase by injector.instance()
+    private val viewModel: MainViewModel by injector.instance()
+
+    private lateinit var accountsAdapter: AccountsAdapter
+
+    override fun provideOverridingModule() = Kodein.Module {
+        bind<MainViewModel>() with provider {
+            val factory = MainViewModel.Factory(instance())
+            ViewModelProviders.of(this@MainActivity, factory)[MainViewModel::class.java]
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        injector.inject(appKodein())
+        initializeInjector()
 
         if (!defaultSharedPreferences.getBoolean(TrezorApplication.PREF_INITIALIZED, false)) {
             startGetStartedActivity()
@@ -38,6 +54,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_main)
+
+        initToolbar()
+
+        accountsAdapter = AccountsAdapter()
+        accountsList.adapter = accountsAdapter
+        accountsList.layoutManager = LinearLayoutManager(this)
+
+        viewModel.accounts.observe(this, Observer {
+            if (it != null) {
+                showAccounts(it)
+            }
+        })
 
         /*
         btnAccountDiscovery.setOnClickListener {
@@ -64,6 +92,11 @@ class MainActivity : AppCompatActivity() {
         */
     }
 
+    override fun onDestroy() {
+        destroyInjector()
+        super.onDestroy()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menu.add(0, ITEM_FORGET, 0, "Forget device")
         return super.onCreateOptionsMenu(menu)
@@ -71,12 +104,25 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            android.R.id.home -> {
+                drawerLayout.openDrawer(GravityCompat.START)
+                true
+            }
             ITEM_FORGET -> {
                 forgetDevice()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun initToolbar() {
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        val actionbar = supportActionBar
+        actionbar!!.setDisplayHomeAsUpEnabled(true)
+        actionbar.setHomeAsUpIndicator(R.drawable.ic_menu_white_24dp)
     }
 
     private fun forgetDevice() {
@@ -94,6 +140,11 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, GetStartedActivity::class.java)
         startActivity(intent)
         finish()
+    }
+
+    private fun showAccounts(accounts: List<Account>) {
+        accountsAdapter.accounts = accounts
+        accountsAdapter.notifyDataSetChanged()
     }
 
     /*

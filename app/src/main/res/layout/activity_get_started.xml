@@ -22,7 +22,7 @@
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="24dp"
         android:src="@drawable/trezor_connect"/>
 
     <Button
@@ -30,6 +30,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp"
         android:text="Continue"
         style="@style/Widget.AppCompat.Button.Colored"/>
 </LinearLayout>
