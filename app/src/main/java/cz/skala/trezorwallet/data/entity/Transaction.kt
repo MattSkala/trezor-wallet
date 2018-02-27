@@ -1,7 +1,6 @@
 package cz.skala.trezorwallet.data.entity
 
 import android.arch.persistence.room.Entity
-import android.arch.persistence.room.PrimaryKey
 import android.content.res.Resources
 import cz.skala.trezorwallet.R
 import java.text.SimpleDateFormat
@@ -10,9 +9,9 @@ import java.util.*
 /**
  * A transaction entity.
  */
-@Entity(tableName = "transactions")
+@Entity(tableName = "transactions", primaryKeys = ["txid", "account"])
 class Transaction(
-        @PrimaryKey val txid: String,
+        val txid: String,
         val account: String,
         val version: Int,
         val time: Long,

@@ -113,7 +113,7 @@ class GetStartedActivity : AppCompatActivity() {
         val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
         val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
         val account = Account(accountNode.getAddress(), publicKey, chainCode, index,
-                true, null)
+                true, null, 0)
         database.accountDao().insert(account)
     }
 

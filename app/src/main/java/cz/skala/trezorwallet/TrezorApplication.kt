@@ -17,8 +17,9 @@ import timber.log.Timber
 class TrezorApplication : Application(), KodeinAware {
     override val kodein by Kodein.lazy {
         bind<AppDatabase>() with eagerSingleton {
-            Room.databaseBuilder(applicationContext,
-                    AppDatabase::class.java, DATABASE_NAME).build()
+            Room.databaseBuilder(applicationContext, AppDatabase::class.java, DATABASE_NAME)
+                    .fallbackToDestructiveMigration()
+                    .build()
         }
 
         bind<InsightApiService>() with eagerSingleton {

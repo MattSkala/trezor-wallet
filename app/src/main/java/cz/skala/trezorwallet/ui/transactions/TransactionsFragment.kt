@@ -12,7 +12,7 @@ import android.view.ViewGroup
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import cz.skala.trezorwallet.R
-import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.data.entity.Transaction
 import kotlinx.android.synthetic.main.fragment_transactions.*
 
 
@@ -75,7 +75,7 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
         super.onDestroy()
     }
 
-    private fun showTransactions(transactions: List<TransactionWithInOut>) {
+    private fun showTransactions(transactions: List<Transaction>) {
         Log.d("TransactionsFragment", "showTransactions " + transactions.size)
         adapter.transactions = transactions
         adapter.notifyDataSetChanged()

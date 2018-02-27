@@ -14,6 +14,12 @@ interface AddressDao {
     @Query("SELECT * FROM addresses WHERE account = :account AND change = :change")
     fun getByAccount(account: Int, change: Boolean): List<Address>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(address: Address)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insert(addresses: List<Address>)
+
+    @Query("DELETE FROM addresses")
+    fun deleteAll()
 }

@@ -1,14 +1,12 @@
 package cz.skala.trezorwallet.ui.transactions
 
 import android.arch.lifecycle.MutableLiveData
+import android.arch.lifecycle.Transformations
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.AppDatabase
-import cz.skala.trezorwallet.data.entity.Transaction
-import cz.skala.trezorwallet.data.entity.TransactionInput
-import cz.skala.trezorwallet.data.entity.TransactionOutput
-import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.data.entity.*
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.response.Tx
 import kotlinx.coroutines.experimental.android.UI
@@ -22,7 +20,13 @@ class TransactionsViewModel(
         val database: AppDatabase,
         val fetcher: TransactionFetcher
 ) : ViewModel() {
-    val transactions = MutableLiveData<List<TransactionWithInOut>>()
+    val transactions by lazy {
+        val transactions = database.transactionDao().getByAccountLiveData(accountId)
+        Transformations.map(transactions, { txs->
+            txs.sortedWith(compareBy({ it.blockheight != null }, { it.blockheight })).reversed()
+        })
+    }
+
     val refreshing = MutableLiveData<Boolean>()
 
     var initialized = false
@@ -39,22 +43,26 @@ class TransactionsViewModel(
     fun fetchTransactions() {
         async(UI) {
             refreshing.value = true
-            val txs = bg {
+            bg {
                 val account = database.accountDao().getById(accountId)
                 val publicKey = account.publicKey
                 val chainCode = account.chainCode
                 val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
 
-                val (txs, addresses) = fetcher.fetchTransactionsForAccount(accountNode)
+                val (txs, externalChainAddresses, changeAddresses) = fetcher.fetchTransactionsForAccount(accountNode)
 
-                val transactions = createTransactionEntities(txs, accountId, addresses)
+                val myAddresses = externalChainAddresses + changeAddresses
+                val transactions = createTransactionEntities(txs, accountId, myAddresses)
 
-                fetcher.calculateBalance(txs, addresses)
+                saveTransactions(transactions)
+                saveAddresses(createAddressEntities(externalChainAddresses, false))
+                saveAddresses(createAddressEntities(changeAddresses, true))
+
+                fetcher.calculateBalance(txs, myAddresses)
 
                 transactions
             }.await()
             refreshing.value = false
-            transactions.value = txs
         }
     }
 
@@ -135,6 +143,29 @@ class TransactionsViewModel(
         }
 
         return TransactionWithInOut(transaction, vin, vout)
+    }
+
+    private fun saveTransactions(transactions: List<TransactionWithInOut>) {
+        transactions.forEach {
+            database.transactionDao().insert(it.tx)
+        }
+    }
+
+    private fun createAddressEntities(addrs: List<String>, change: Boolean): List<Address> {
+        return addrs.mapIndexed { index, addr ->
+            Address(
+                    addr,
+                    accountId,
+                    change,
+                    index,
+                    null,
+                    0.0
+            )
+        }
+    }
+
+    private fun saveAddresses(addresses: List<Address>) {
+        database.addressDao().insert(addresses)
     }
 
     class Factory(val database: AppDatabase, val fetcher: TransactionFetcher) : ViewModelProvider.NewInstanceFactory() {

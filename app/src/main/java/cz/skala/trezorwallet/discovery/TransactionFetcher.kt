@@ -18,20 +18,21 @@ class TransactionFetcher(val insightApi: InsightApiService) {
     /**
      * Fetches transactions for all active addresses in an account.
      */
-    fun fetchTransactionsForAccount(accountNode: ExtendedPublicKey): Pair<Set<Tx>, List<String>> {
+    fun fetchTransactionsForAccount(accountNode: ExtendedPublicKey): Triple<Set<Tx>, List<String>, List<String>> {
         val externalChainNode = accountNode.deriveChildKey(0)
         val changeNode = accountNode.deriveChildKey(1)
 
         val txs = mutableSetOf<Tx>()
-        val addresses = mutableListOf<String>()
+        val externalChainAddresses = mutableListOf<String>()
+        val changeAddresses = mutableListOf<String>()
 
         Log.d(TAG, "fetchTransactionsForChainNode 0")
-        txs += fetchTransactionsForChainNode(externalChainNode, addresses)
+        txs += fetchTransactionsForChainNode(externalChainNode, externalChainAddresses)
 
         Log.d(TAG, "fetchTransactionsForChainNode 1")
-        txs += fetchTransactionsForChainNode(changeNode, addresses)
+        txs += fetchTransactionsForChainNode(changeNode, changeAddresses)
 
-        return Pair(txs, addresses)
+        return Triple(txs, externalChainAddresses, changeAddresses)
     }
 
     private fun fetchTransactionsForChainNode(externalChainNode: ExtendedPublicKey, addresses: MutableList<String>): List<Tx> {

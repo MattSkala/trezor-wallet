@@ -9,8 +9,9 @@ import android.arch.persistence.room.PrimaryKey
 @Entity(tableName = "addresses")
 class Address(
         @PrimaryKey val address: String,
-        val account: Int,
+        val account: String,
         val change: Boolean,
         val index: Int,
-        val label: String?
+        val label: String?,
+        var totalReceived: Double
 )

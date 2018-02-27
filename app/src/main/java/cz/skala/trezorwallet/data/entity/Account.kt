@@ -14,5 +14,6 @@ class Account(
         @ColumnInfo(typeAffinity = ColumnInfo.BLOB) val chainCode: ByteArray,
         val index: Int,
         val legacy: Boolean,
-        val label: String?
+        val label: String?,
+        val balance: Int
 )

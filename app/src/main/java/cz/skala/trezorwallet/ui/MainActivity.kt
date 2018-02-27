@@ -73,8 +73,12 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
 
         viewModel.accounts.observe(this, Observer {
             if (it != null) {
-                showAccounts(it)
-                showSelectedAccount()
+                if (it.isNotEmpty()) {
+                    showAccounts(it)
+                    showSelectedAccount()
+                } else {
+                    forgetDevice()
+                }
             }
         })
 
@@ -136,6 +140,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         async(UI) {
             bg {
                 database.accountDao().deleteAll()
+                database.transactionDao().deleteAll()
+                database.addressDao().deleteAll()
                 defaultSharedPreferences.edit()
                         .putBoolean(TrezorApplication.PREF_INITIALIZED, false).apply()
             }.await()
