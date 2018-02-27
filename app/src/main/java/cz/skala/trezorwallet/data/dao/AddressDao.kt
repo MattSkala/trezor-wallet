@@ -1,5 +1,6 @@
 package cz.skala.trezorwallet.data.dao
 
+import android.arch.lifecycle.LiveData
 import android.arch.persistence.room.Dao
 import android.arch.persistence.room.Insert
 import android.arch.persistence.room.OnConflictStrategy
@@ -11,8 +12,11 @@ import cz.skala.trezorwallet.data.entity.Address
  */
 @Dao
 interface AddressDao {
-    @Query("SELECT * FROM addresses WHERE account = :account AND change = :change")
-    fun getByAccount(account: Int, change: Boolean): List<Address>
+    @Query("SELECT * FROM addresses WHERE account = :account AND change = :change ORDER BY `index` ASC")
+    fun getByAccount(account: String, change: Boolean): List<Address>
+
+    @Query("SELECT * FROM addresses WHERE account = :account AND change = :change ORDER BY `index` ASC")
+    fun getByAccountLiveData(account: String, change: Boolean): LiveData<List<Address>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(address: Address)

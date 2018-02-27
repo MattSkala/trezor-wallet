@@ -17,6 +17,7 @@ import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
+import cz.skala.trezorwallet.ui.addresses.AddressesFragment
 import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
@@ -31,10 +32,6 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         private const val TAG = "MainActivity"
 
         private const val ITEM_FORGET = 10
-
-        private const val TAB_TRANSACTIONS = 0
-        private const val TAB_RECEIVE = 1
-        private const val TAB_SEND = 2
     }
 
     override val injector = KodeinInjector()
@@ -89,14 +86,12 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         })
 
         navigation.setOnNavigationItemSelectedListener {
+            val accounts = viewModel.accounts.value!!
+            val position = viewModel.selectedAccountPosition.value!!
+            val accountId = accounts[position].id
             when (it.itemId) {
-                R.id.item_transactions -> {
-                    val accounts = viewModel.accounts.value!!
-                    val position = viewModel.selectedAccountPosition.value!!
-                    val accountId = accounts[position].id
-                    showAccount(accountId)
-                }
-                R.id.item_receive -> replaceFragment(Fragment())
+                R.id.item_transactions -> showTransactions(accountId)
+                R.id.item_receive -> showAddresses(accountId)
                 R.id.item_send -> replaceFragment(Fragment())
             }
             true
@@ -160,10 +155,18 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         accountsAdapter.notifyDataSetChanged()
     }
 
-    private fun showAccount(accountId: String) {
+    private fun showTransactions(accountId: String) {
         val f = TransactionsFragment()
         val args = Bundle()
         args.putString(TransactionsFragment.ARG_ACCOUNT_ID, accountId)
+        f.arguments = args
+        replaceFragment(f)
+    }
+
+    private fun showAddresses(accountId: String) {
+        val f = AddressesFragment()
+        val args = Bundle()
+        args.putString(AddressesFragment.ARG_ACCOUNT_ID, accountId)
         f.arguments = args
         replaceFragment(f)
     }
@@ -172,7 +175,11 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         val accounts = viewModel.accounts.value
         val selectedAccountPosition = viewModel.selectedAccountPosition.value
         if (accounts != null && selectedAccountPosition != null && accounts.size > selectedAccountPosition) {
-            showAccount(accounts[selectedAccountPosition].id)
+            showTransactions(accounts[selectedAccountPosition].id)
+        }
+        
+        if (navigation.selectedItemId != R.id.item_transactions) {
+            navigation.selectedItemId = R.id.item_transactions
         }
     }
 

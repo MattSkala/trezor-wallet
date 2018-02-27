@@ -2,4 +2,6 @@
     <string name="app_name">Trezor Wallet</string>
 
     <string name="tx_unconfirmed">Unconfirmed</string>
+    <string name="x_btc">%s BTC</string>
+    <string name="total_received">Total Received: %s</string>
 </resources>

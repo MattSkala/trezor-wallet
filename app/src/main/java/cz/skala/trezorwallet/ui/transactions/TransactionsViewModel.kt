@@ -55,7 +55,10 @@ class TransactionsViewModel(
                 val transactions = createTransactionEntities(txs, accountId, myAddresses)
 
                 saveTransactions(transactions)
-                saveAddresses(createAddressEntities(externalChainAddresses, false))
+
+                val externalChainAddressEntities = createAddressEntities(externalChainAddresses, false)
+                calculateAddressTotalReceived(txs, externalChainAddressEntities)
+                saveAddresses(externalChainAddressEntities)
                 saveAddresses(createAddressEntities(changeAddresses, true))
 
                 fetcher.calculateBalance(txs, myAddresses)
@@ -161,6 +164,19 @@ class TransactionsViewModel(
                     null,
                     0.0
             )
+        }
+    }
+
+    private fun calculateAddressTotalReceived(txs: Set<Tx>, addresses: List<Address>) {
+        txs.forEach { tx ->
+            tx.vout.forEach { txOut ->
+                txOut.scriptPubKey.addresses?.forEach { addr ->
+                    val address = addresses.find { it.address == addr }
+                    if (address != null) {
+                        address.totalReceived += txOut.value.toDouble()
+                    }
+                }
+            }
         }
     }
 
