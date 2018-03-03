@@ -7,5 +7,6 @@ fun formatBtcValue(value: Double): String {
     while (str[endIndex - 1] == '0' && endIndex - 1 - dotIndex > 2) {
         endIndex--
     }
-    return str.substring(0, endIndex)
+    val formatted = str.substring(0, endIndex)
+    return formatted + " BTC"
 }

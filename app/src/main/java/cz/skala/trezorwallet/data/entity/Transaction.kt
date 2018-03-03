@@ -1,8 +1,6 @@
 package cz.skala.trezorwallet.data.entity
 
 import android.arch.persistence.room.Entity
-import android.content.res.Resources
-import cz.skala.trezorwallet.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -11,12 +9,13 @@ import java.util.*
  */
 @Entity(tableName = "transactions", primaryKeys = ["txid", "account"])
 class Transaction(
+        val accountTxid: String,
         val txid: String,
         val account: String,
         val version: Int,
         val time: Long,
         val size: Int,
-        val blockheight: Int?,
+        val blockheight: Int,
         val blockhash: String?,
         val blocktime: Long?,
         val confirmations: Int,
@@ -28,12 +27,25 @@ class Transaction(
         SELF, RECV, SENT
     }
 
-    fun getBlockTimeFormatted(resources: Resources): String {
+    fun getBlockDate(): Date? {
+        return if (blocktime != null) Date(blocktime * 1000) else null
+    }
+
+    fun getBlockDateFormatted(): String? {
         return if (blocktime != null) {
             val date = Date(blocktime * 1000)
-            SimpleDateFormat.getDateTimeInstance().format(date)
+            SimpleDateFormat.getDateInstance(SimpleDateFormat.LONG).format(date)
         } else {
-            resources.getString(R.string.tx_unconfirmed)
+            null
+        }
+    }
+
+    fun getBlockTimeFormatted(): String? {
+        return if (blocktime != null) {
+            val date = Date(blocktime * 1000)
+            SimpleDateFormat.getTimeInstance(SimpleDateFormat.SHORT).format(date)
+        } else {
+            null
         }
     }
 }

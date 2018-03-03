@@ -5,14 +5,12 @@ import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import cz.skala.trezorwallet.R
-import cz.skala.trezorwallet.data.entity.Transaction
 import kotlinx.android.synthetic.main.fragment_transactions.*
 
 
@@ -21,7 +19,7 @@ import kotlinx.android.synthetic.main.fragment_transactions.*
  */
 class TransactionsFragment : Fragment(), SupportFragmentInjector {
     companion object {
-        val ARG_ACCOUNT_ID = "account_id"
+        const val ARG_ACCOUNT_ID = "account_id"
     }
 
     override val injector = KodeinInjector()
@@ -44,9 +42,10 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
         val args = arguments ?: return
         viewModel.start(args.getString(ARG_ACCOUNT_ID))
 
-        viewModel.transactions.observe(this, Observer {
+        viewModel.items.observe(this, Observer {
             if (it != null) {
-                showTransactions(it)
+                adapter.items = it
+                adapter.notifyDataSetChanged()
             }
         })
 
@@ -73,11 +72,5 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
     override fun onDestroy() {
         destroyInjector()
         super.onDestroy()
-    }
-
-    private fun showTransactions(transactions: List<Transaction>) {
-        Log.d("TransactionsFragment", "showTransactions " + transactions.size)
-        adapter.transactions = transactions
-        adapter.notifyDataSetChanged()
     }
 }

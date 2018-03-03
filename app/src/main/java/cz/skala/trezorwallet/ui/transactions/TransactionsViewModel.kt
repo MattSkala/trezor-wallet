@@ -1,12 +1,16 @@
 package cz.skala.trezorwallet.ui.transactions
 
 import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Transformations
+import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.*
+import cz.skala.trezorwallet.data.item.AccountSummaryItem
+import cz.skala.trezorwallet.data.item.DateItem
+import cz.skala.trezorwallet.data.item.Item
+import cz.skala.trezorwallet.data.item.TransactionItem
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.response.Tx
 import kotlinx.coroutines.experimental.android.UI
@@ -17,27 +21,41 @@ import org.jetbrains.anko.coroutines.experimental.bg
  * A ViewModel for TransactionsFragment.
  */
 class TransactionsViewModel(
-        val database: AppDatabase,
-        val fetcher: TransactionFetcher
+        private val database: AppDatabase,
+        private val fetcher: TransactionFetcher
 ) : ViewModel() {
-    val transactions by lazy {
-        val transactions = database.transactionDao().getByAccountLiveData(accountId)
-        Transformations.map(transactions, { txs->
-            txs.sortedWith(compareBy({ it.blockheight != null }, { it.blockheight })).reversed()
-        })
-    }
+    val items = MutableLiveData<List<Item>>()
 
     val refreshing = MutableLiveData<Boolean>()
 
-    var initialized = false
-    lateinit var accountId: String
+    private var initialized = false
+    private lateinit var accountId: String
+    private var transactions = listOf<TransactionWithInOut>()
+    private var summary = AccountSummary(0.0, 0.0, 0.0)
+
+    private val transactionsLiveData by lazy {
+        database.transactionDao().getByAccountLiveDataWithInOut(accountId)
+    }
+
+    private val transactionsObserver = Observer<List<TransactionWithInOut>> { txs ->
+        if (txs != null) {
+            transactions = txs.sortedWith(compareBy({ it.tx.blockheight == -1 }, { it.tx.blockheight })).reversed()
+            summary = createAccountSummary(txs)
+            updateItems()
+        }
+    }
 
     fun start(accountId: String) {
         if (!initialized) {
             this.accountId = accountId
             fetchTransactions()
+            loadTransactions()
             initialized = true
         }
+    }
+
+    override fun onCleared() {
+        transactionsLiveData.removeObserver(transactionsObserver)
     }
 
     fun fetchTransactions() {
@@ -52,7 +70,7 @@ class TransactionsViewModel(
                 val (txs, externalChainAddresses, changeAddresses) = fetcher.fetchTransactionsForAccount(accountNode)
 
                 val myAddresses = externalChainAddresses + changeAddresses
-                val transactions = createTransactionEntities(txs, accountId, myAddresses)
+                val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)
 
                 saveTransactions(transactions)
 
@@ -69,13 +87,39 @@ class TransactionsViewModel(
         }
     }
 
-    private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>): List<TransactionWithInOut> {
-        return txs.map {
-            createTransactionEntity(it, accountId, addresses)
-        }.sortedWith(compareBy({ it.tx.blockheight != null }, { it.tx.blockheight })).reversed()
+    private fun loadTransactions() {
+        transactionsLiveData.observeForever(transactionsObserver)
     }
 
-    private fun createTransactionEntity(tx: Tx, accountId: String, myAddresses: List<String>): TransactionWithInOut {
+    private fun updateItems() {
+        val items = mutableListOf<Item>()
+
+        items.add(AccountSummaryItem(summary))
+
+        var lastDate: String? = null
+
+        for (transaction in transactions) {
+            val date = transaction.tx.getBlockDateFormatted() ?: ""
+
+            if (lastDate != date) {
+                items.add(DateItem(transaction.tx.getBlockDate()))
+            }
+
+            lastDate = date
+
+            items.add(TransactionItem(transaction))
+        }
+
+        this.items.value = items
+    }
+
+    private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>, changeAddresses: List<String>): List<TransactionWithInOut> {
+        return txs.map {
+            createTransactionEntity(it, accountId, addresses, changeAddresses)
+        }
+    }
+
+    private fun createTransactionEntity(tx: Tx, accountId: String, myAddresses: List<String>, changeAddresses: List<String>): TransactionWithInOut {
         val isSent = tx.vin.all {
             myAddresses.contains(it.addr)
         }
@@ -121,7 +165,10 @@ class TransactionsViewModel(
             }
         }
 
+        val accountTxid = accountId + "_" + tx.txid
+
         val transaction = Transaction(
+                accountTxid,
                 tx.txid,
                 accountId,
                 tx.version,
@@ -137,21 +184,22 @@ class TransactionsViewModel(
         )
 
         val vin = tx.vin.map {
-            TransactionInput(tx.txid, it.n, it.addr, it.value)
+            TransactionInput(accountTxid, tx.txid, accountId, it.n, it.addr, it.value)
         }
 
         val vout = tx.vout.map {
-            TransactionOutput(tx.txid, it.n, it.scriptPubKey.addresses?.get(0),
-                    it.value.toDouble(), it.spentTxId)
+            val myAddress = it.scriptPubKey.addresses?.find { myAddresses.contains(it) }
+            val isMine = myAddress != null
+            val address = myAddress ?: it.scriptPubKey.addresses?.get(0)
+            val isChange = changeAddresses.contains(address)
+            TransactionOutput(accountTxid, tx.txid, accountId, it.n, address, it.value.toDouble(), it.spentTxId, isMine, isChange)
         }
 
         return TransactionWithInOut(transaction, vin, vout)
     }
 
     private fun saveTransactions(transactions: List<TransactionWithInOut>) {
-        transactions.forEach {
-            database.transactionDao().insert(it.tx)
-        }
+        database.transactionDao().insertTransactions(transactions)
     }
 
     private fun createAddressEntities(addrs: List<String>, change: Boolean): List<Address> {
@@ -178,6 +226,19 @@ class TransactionsViewModel(
                 }
             }
         }
+    }
+
+    private fun createAccountSummary(transactions: List<TransactionWithInOut>): AccountSummary {
+        var received = 0.0
+        var sent = 0.0
+        transactions.forEach {
+            when (it.tx.type) {
+                Transaction.Type.RECV -> received += it.tx.value
+                Transaction.Type.SENT -> sent += it.tx.value + it.tx.fee
+                Transaction.Type.SELF -> sent += it.tx.fee
+            }
+        }
+        return AccountSummary(received, sent, 1.0)
     }
 
     private fun saveAddresses(addresses: List<Address>) {

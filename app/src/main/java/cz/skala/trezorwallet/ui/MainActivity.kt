@@ -177,7 +177,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         if (accounts != null && selectedAccountPosition != null && accounts.size > selectedAccountPosition) {
             showTransactions(accounts[selectedAccountPosition].id)
         }
-        
+
         if (navigation.selectedItemId != R.id.item_transactions) {
             navigation.selectedItemId = R.id.item_transactions
         }

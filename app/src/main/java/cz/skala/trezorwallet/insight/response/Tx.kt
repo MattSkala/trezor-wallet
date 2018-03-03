@@ -9,7 +9,7 @@ class Tx(
         val locktime: Int,
         val time: Long,
         val size: Int,
-        val blockheight: Int?,
+        val blockheight: Int,
         val blockhash: String?,
         val blocktime: Long?,
         val confirmations: Int,

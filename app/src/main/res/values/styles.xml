@@ -14,4 +14,15 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="AccountBalanceItemTitle" parent="TextAppearance.AppCompat.Body2">
+        <item name="android:textColor">@color/textSecondary</item>
+    </style>
+
+    <style name="AccountBalanceItemValuePrimary" parent="TextAppearance.AppCompat.Subhead">
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="AccountBalanceItemValueSecondary" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:textColor">@color/textSecondary</item>
+    </style>
 </resources>

@@ -4,4 +4,8 @@
     <string name="tx_unconfirmed">Unconfirmed</string>
     <string name="x_btc">%s BTC</string>
     <string name="total_received">Total Received: %s</string>
+    <string name="balance">Balance</string>
+    <string name="rate">Rate</string>
+    <string name="received">Received</string>
+    <string name="sent">Sent</string>
 </resources>
