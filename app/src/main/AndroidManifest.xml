@@ -23,17 +23,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-                android:resource="@xml/device_filter" />
         </activity>
 
-        <activity android:name=".ui.getstarted.GetStartedActivity"/>
+        <activity android:name=".ui.getstarted.GetStartedActivity"
+            android:launchMode="singleTop"/>
 
         <activity android:name=".ui.addressdetail.AddressDetailActivity"
             android:label="@string/address"

@@ -9,8 +9,12 @@ import android.widget.Toast
 import com.github.salomonbrys.kodein.KodeinInjector
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.github.salomonbrys.kodein.instance
+import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
+import com.satoshilabs.trezor.intents.ui.data.CheckAddressRequest
+import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
 import kotlinx.android.synthetic.main.activity_address_detail.*
 import kotlinx.coroutines.experimental.android.UI
@@ -31,6 +35,8 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
     override val injector = KodeinInjector()
     private val database: AppDatabase by injector.instance()
 
+    private var account: Account? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -48,6 +54,12 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
             copyToClipboard(address)
         }
 
+        btnShow.setOnClickListener {
+            account?.let { account ->
+                showOnTrezor(address, account)
+            }
+        }
+
         loadAccount(address)
 
         showQrCode(address)
@@ -60,11 +72,12 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
 
     private fun loadAccount(address: Address) {
         launch(UI) {
-            val account = bg {
+            val acc = bg {
                 database.accountDao().getById(address.account)
             }.await()
-            txtAccountLabel.text = account.getDisplayLabel(resources)
-            txtAddressPath.text = address.getPath(account)
+            account = acc
+            txtAccountLabel.text = acc.getDisplayLabel(resources)
+            txtAddressPath.text = address.getPathString(acc)
         }
     }
 
@@ -81,5 +94,14 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
                 .withSize(500, 500)
                 .bitmap()
         imgQrCode.imageBitmap = qrCodeBitmap
+    }
+
+    private fun showOnTrezor(address: Address, account: Account) {
+        val message = TrezorMessage.GetAddress.newBuilder()
+                .addAllAddressN(address.getPath(account).asList())
+                .setShowDisplay(true)
+                .build()
+        val intent = TrezorActivity.createIntent(this, CheckAddressRequest(message, address.address))
+        startActivity(intent)
     }
 }

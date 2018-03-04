@@ -22,7 +22,7 @@ import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.jetbrains.anko.defaultSharedPreferences
 
@@ -115,6 +115,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
                 true
             }
             ITEM_FORGET -> {
+                viewModel.accounts.removeObservers(this)
                 forgetDevice()
                 true
             }
@@ -132,7 +133,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     private fun forgetDevice() {
-        async(UI) {
+        launch(UI) {
             bg {
                 database.accountDao().deleteAll()
                 database.transactionDao().deleteAll()

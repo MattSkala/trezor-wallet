@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import com.github.salomonbrys.kodein.KodeinInjector
 import com.github.salomonbrys.kodein.android.appKodein
 import com.github.salomonbrys.kodein.instance
@@ -12,6 +11,7 @@ import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyRequest
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import com.satoshilabs.trezor.intents.ui.data.InitializeRequest
+import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
@@ -64,7 +64,7 @@ class GetStartedActivity : AppCompatActivity() {
             }
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GetPublicKeyResult
-                val node = result.publicKey.node
+                val node = result.message.node
                 scanAccount(node)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
@@ -79,12 +79,13 @@ class GetStartedActivity : AppCompatActivity() {
     private fun getPublicKeyForAccount(i: Int) {
         val purpose = ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP44
         val coinType = ExtendedPublicKey.HARDENED_IDX + COIN_BITCOIN
-
-        Log.d(TAG, "Account #" + i)
         val account = ExtendedPublicKey.HARDENED_IDX + i
-        val path = intArrayOf(purpose.toInt(), coinType.toInt(), account.toInt())
-        val intent = TrezorActivity.createIntent(this,
-                GetPublicKeyRequest(path, false))
+        val message = TrezorMessage.GetPublicKey.newBuilder()
+                .addAddressN(purpose.toInt())
+                .addAddressN(coinType.toInt())
+                .addAddressN(account.toInt())
+                .build()
+        val intent = TrezorActivity.createIntent(this, GetPublicKeyRequest(message))
         startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
     }
 
