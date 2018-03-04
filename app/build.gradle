@@ -33,6 +33,10 @@ kotlin {
     }
 }
 
+androidExtensions {
+    experimental = true
+}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':trezor-lib')
@@ -55,6 +59,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:logging-interceptor:3.8.0'
     implementation 'com.github.salomonbrys.kodein:kodein:4.1.0'
     implementation 'com.github.salomonbrys.kodein:kodein-android:4.1.0'
+    implementation 'com.github.kenglxn.QRGen:android:2.4.0'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'

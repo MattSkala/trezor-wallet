@@ -25,4 +25,11 @@
     <style name="AccountBalanceItemValueSecondary" parent="TextAppearance.AppCompat.Body1">
         <item name="android:textColor">@color/textSecondary</item>
     </style>
+
+    <style name="AccentButton" parent="Widget.AppCompat.Button.Colored">
+        <item name="android:paddingStart">@dimen/button_padding_horizontal</item>
+        <item name="android:paddingEnd">@dimen/button_padding_horizontal</item>
+        <item name="android:drawablePadding">@dimen/button_padding_drawable</item>
+        <item name="android:layout_height">52dp</item>
+    </style>
 </resources>

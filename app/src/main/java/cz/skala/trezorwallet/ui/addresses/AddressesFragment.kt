@@ -2,6 +2,7 @@ package cz.skala.trezorwallet.ui.addresses
 
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
+import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
@@ -11,6 +12,8 @@ import android.view.ViewGroup
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import cz.skala.trezorwallet.R
+import cz.skala.trezorwallet.data.entity.Address
+import cz.skala.trezorwallet.ui.addressdetail.AddressDetailActivity
 import kotlinx.android.synthetic.main.fragment_addresses.*
 
 
@@ -19,13 +22,13 @@ import kotlinx.android.synthetic.main.fragment_addresses.*
  */
 class AddressesFragment : Fragment(), SupportFragmentInjector {
     companion object {
-        val ARG_ACCOUNT_ID = "account_id"
+        const val ARG_ACCOUNT_ID = "account_id"
     }
 
     override val injector = KodeinInjector()
     private val viewModel: AddressesViewModel by injector.instance()
 
-    val adapter = AddressesAdapter()
+    private val adapter = AddressesAdapter()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<AddressesViewModel>() with provider {
@@ -56,6 +59,10 @@ class AddressesFragment : Fragment(), SupportFragmentInjector {
             viewModel.addFreshAddress()
             recyclerView.scrollToPosition(adapter.itemCount - 1)
         }
+
+        adapter.onAddressClickListener = {
+            startAddressDetailActivity(it)
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -72,5 +79,11 @@ class AddressesFragment : Fragment(), SupportFragmentInjector {
     override fun onDestroy() {
         destroyInjector()
         super.onDestroy()
+    }
+
+    private fun startAddressDetailActivity(address: Address) {
+        val intent = Intent(context, AddressDetailActivity::class.java)
+        intent.putExtra(AddressDetailActivity.EXTRA_ADDRESS, address)
+        startActivity(intent)
     }
 }

@@ -11,4 +11,11 @@
     <string name="previous_addresses">Previous Addresses</string>
     <string name="fresh_address">Fresh Address</string>
     <string name="more_addresses">More Addresses</string>
+    <string name="bip32_path">BIP32 Path:</string>
+    <string name="copy_to_clipboard">Copy to Clipboard</string>
+    <string name="show_on_trezor">Show on TREZOR</string>
+    <string name="account_x">Account #%d</string>
+    <string name="legacy_account_x">Legacy Account #%d</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="address">Address</string>
 </resources>

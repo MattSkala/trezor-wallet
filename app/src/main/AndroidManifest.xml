@@ -16,7 +16,8 @@
         android:name=".TrezorApplication">
 
         <activity android:name=".ui.MainActivity"
-                  android:theme="@style/AppTheme.NoActionBar">
+                  android:theme="@style/AppTheme.NoActionBar"
+                  android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -33,6 +34,10 @@
         </activity>
 
         <activity android:name=".ui.getstarted.GetStartedActivity"/>
+
+        <activity android:name=".ui.addressdetail.AddressDetailActivity"
+            android:label="@string/address"
+            android:parentActivityName=".ui.MainActivity"/>
     </application>
 
 </manifest>
