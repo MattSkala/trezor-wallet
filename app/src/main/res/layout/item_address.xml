@@ -1,43 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
+<android.support.v7.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?selectableItemBackground"
-    android:paddingBottom="10dp"
-    android:paddingLeft="20dp"
-    android:paddingRight="20dp"
-    android:paddingTop="10dp">
+    android:layout_marginBottom="8dp"
+    android:layout_marginLeft="8dp"
+    android:layout_marginRight="8dp">
 
-    <TextView
-        android:id="@+id/txtIndex"
-        style="@style/TextAppearance.AppCompat.Body1"
-        android:layout_width="52dp"
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="/0"
-        android:textColor="@color/textSecondary"/>
+        android:background="?selectableItemBackground"
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/txtLabel"
-        style="@style/TextAppearance.AppCompat.Body2"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:lines="1"
-        android:text="asdfasdfasdf"
-        app:layout_constraintLeft_toRightOf="@id/txtIndex"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        <TextView
+            android:id="@+id/txtIndex"
+            style="@style/TextAppearance.AppCompat.Body1"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:text="/0"
+            android:textColor="@color/textSecondary"/>
 
-    <TextView
-        android:id="@+id/txtTotalReceived"
-        style="@style/TextAppearance.AppCompat.Body1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Total Received: 0.00 BTC"
-        android:textColor="@color/textSecondary"
-        app:layout_constraintLeft_toRightOf="@id/txtIndex"
-        app:layout_constraintTop_toBottomOf="@id/txtLabel"/>
-</android.support.constraint.ConstraintLayout>
+        <TextView
+            android:id="@+id/txtLabel"
+            style="@style/TextAppearance.AppCompat.Body2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:lines="1"
+            android:text="asdfasdfasdf"
+            app:layout_constraintLeft_toRightOf="@id/txtIndex"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <TextView
+            android:id="@+id/txtTotalReceived"
+            style="@style/TextAppearance.AppCompat.Body1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Total Received: 0.00 BTC"
+            android:textColor="@color/textSecondary"
+            app:layout_constraintLeft_toRightOf="@id/txtIndex"
+            app:layout_constraintTop_toBottomOf="@id/txtLabel"/>
+    </android.support.constraint.ConstraintLayout>
+</android.support.v7.widget.CardView>

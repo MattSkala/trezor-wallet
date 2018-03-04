@@ -8,4 +8,7 @@
     <string name="rate">Rate</string>
     <string name="received">Received</string>
     <string name="sent">Sent</string>
+    <string name="previous_addresses">Previous Addresses</string>
+    <string name="fresh_address">Fresh Address</string>
+    <string name="more_addresses">More Addresses</string>
 </resources>

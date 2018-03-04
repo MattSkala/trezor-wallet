@@ -42,12 +42,20 @@ class AddressesFragment : Fragment(), SupportFragmentInjector {
         val args = arguments ?: return
         viewModel.start(args.getString(ARG_ACCOUNT_ID))
 
-        viewModel.addresses.observe(this, Observer {
+        viewModel.items.observe(this, Observer {
             if (it != null) {
-                adapter.addresses = it
-                adapter.notifyDataSetChanged()
+                adapter.updateItems(it)
             }
         })
+
+        adapter.onPreviousAddressesClickListener = {
+            viewModel.togglePreviousAddresses()
+        }
+
+        adapter.onMoreAddressesClickListener = {
+            viewModel.addFreshAddress()
+            recyclerView.scrollToPosition(adapter.itemCount - 1)
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
