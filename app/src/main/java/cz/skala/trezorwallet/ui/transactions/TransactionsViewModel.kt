@@ -4,8 +4,10 @@ import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
+import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.*
 import cz.skala.trezorwallet.data.item.AccountSummaryItem
 import cz.skala.trezorwallet.data.item.DateItem
@@ -14,7 +16,7 @@ import cz.skala.trezorwallet.data.item.TransactionItem
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.response.Tx
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
 
 /**
@@ -22,7 +24,9 @@ import org.jetbrains.anko.coroutines.experimental.bg
  */
 class TransactionsViewModel(
         private val database: AppDatabase,
-        private val fetcher: TransactionFetcher
+        private val fetcher: TransactionFetcher,
+        private val coinMarketCapClient: CoinMarketCapClient,
+        private val prefs: PreferenceHelper
 ) : ViewModel() {
     val items = MutableLiveData<List<Item>>()
 
@@ -31,7 +35,7 @@ class TransactionsViewModel(
     private var initialized = false
     private lateinit var accountId: String
     private var transactions = listOf<TransactionWithInOut>()
-    private var summary = AccountSummary(0.0, 0.0, 0.0)
+    private var summary = AccountSummary(0.0, 0.0)
 
     private val transactionsLiveData by lazy {
         database.transactionDao().getByAccountLiveDataWithInOut(accountId)
@@ -48,8 +52,9 @@ class TransactionsViewModel(
     fun start(accountId: String) {
         if (!initialized) {
             this.accountId = accountId
-            fetchTransactions()
             loadTransactions()
+            fetchTransactions()
+            fetchRate()
             initialized = true
         }
     }
@@ -59,7 +64,7 @@ class TransactionsViewModel(
     }
 
     fun fetchTransactions() {
-        async(UI) {
+        launch(UI) {
             refreshing.value = true
             bg {
                 val account = database.accountDao().getById(accountId)
@@ -91,10 +96,22 @@ class TransactionsViewModel(
         transactionsLiveData.observeForever(transactionsObserver)
     }
 
+    private fun fetchRate() {
+        launch(UI) {
+            prefs.rate = bg {
+                coinMarketCapClient.fetchRate(prefs.currencyCode)
+            }.await().toFloat()
+            updateItems()
+        }
+    }
+
     private fun updateItems() {
         val items = mutableListOf<Item>()
 
-        items.add(AccountSummaryItem(summary))
+        val rate = prefs.rate.toDouble()
+        val currencyCode = prefs.currencyCode
+
+        items.add(AccountSummaryItem(summary, rate, currencyCode))
 
         var lastDate: String? = null
 
@@ -107,7 +124,7 @@ class TransactionsViewModel(
 
             lastDate = date
 
-            items.add(TransactionItem(transaction))
+            items.add(TransactionItem(transaction, rate, currencyCode))
         }
 
         this.items.value = items
@@ -238,16 +255,18 @@ class TransactionsViewModel(
                 Transaction.Type.SELF -> sent += it.tx.fee
             }
         }
-        return AccountSummary(received, sent, 1.0)
+        return AccountSummary(received, sent)
     }
 
     private fun saveAddresses(addresses: List<Address>) {
         database.addressDao().insert(addresses)
     }
 
-    class Factory(val database: AppDatabase, val fetcher: TransactionFetcher) : ViewModelProvider.NewInstanceFactory() {
+    class Factory(val database: AppDatabase, val fetcher: TransactionFetcher,
+                  val coinMarketCapClient: CoinMarketCapClient, val prefs: PreferenceHelper
+    ) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return TransactionsViewModel(database, fetcher) as T
+            return TransactionsViewModel(database, fetcher, coinMarketCapClient, prefs) as T
         }
     }
 }

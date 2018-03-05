@@ -3,7 +3,9 @@ package cz.skala.trezorwallet
 import android.app.Application
 import android.arch.persistence.room.Room
 import com.github.salomonbrys.kodein.*
+import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.InsightApiService
@@ -45,6 +47,14 @@ class TrezorApplication : Application(), KodeinAware {
 
         bind<TransactionFetcher>() with singleton {
             TransactionFetcher(instance())
+        }
+
+        bind<CoinMarketCapClient>() with singleton {
+            CoinMarketCapClient()
+        }
+
+        bind<PreferenceHelper>() with singleton {
+            PreferenceHelper(applicationContext)
         }
     }
 

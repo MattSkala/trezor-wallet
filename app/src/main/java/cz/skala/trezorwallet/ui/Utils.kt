@@ -1,5 +1,8 @@
 package cz.skala.trezorwallet.ui
 
+import java.text.NumberFormat
+import java.util.*
+
 fun formatBtcValue(value: Double): String {
     var str = java.lang.String.format("%.8f", value)
     var endIndex = str.length
@@ -9,4 +12,10 @@ fun formatBtcValue(value: Double): String {
     }
     val formatted = str.substring(0, endIndex)
     return formatted + " BTC"
+}
+
+fun formatPrice(value: Double, currencyCode: String): String {
+    val format = NumberFormat.getCurrencyInstance()
+    format.currency = Currency.getInstance(currencyCode)
+    return format.format(value)
 }

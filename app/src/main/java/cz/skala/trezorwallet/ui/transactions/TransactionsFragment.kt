@@ -29,7 +29,7 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<TransactionsViewModel>() with provider {
-            val factory = TransactionsViewModel.Factory(instance(), instance())
+            val factory = TransactionsViewModel.Factory(instance(), instance(), instance(), instance())
             ViewModelProviders.of(this@TransactionsFragment, factory)[TransactionsViewModel::class.java]
         }
     }
