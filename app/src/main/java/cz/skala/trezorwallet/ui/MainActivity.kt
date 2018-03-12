@@ -17,6 +17,10 @@ import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
+import cz.skala.trezorwallet.data.item.AccountItem
+import cz.skala.trezorwallet.data.item.AccountSectionItem
+import cz.skala.trezorwallet.data.item.AddAccountItem
+import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.ui.addresses.AddressesFragment
 import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
@@ -61,7 +65,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         initToolbar()
 
         accountsAdapter.onItemClickListener = {
-            viewModel.selectedAccountPosition.value = accountsAdapter.selectedPosition
+            viewModel.setSelectedAccount(it)
             drawerLayout.closeDrawers()
         }
 
@@ -72,23 +76,24 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             if (it != null) {
                 if (it.isNotEmpty()) {
                     showAccounts(it)
-                    showSelectedAccount()
+                    if (viewModel.selectedAccount.value == null) {
+                        viewModel.setSelectedAccount(it.first())
+                    }
                 } else {
                     forgetDevice()
                 }
             }
         })
 
-        viewModel.selectedAccountPosition.observe(this, Observer {
+        viewModel.selectedAccount.observe(this, Observer {
             if (it != null) {
-                showSelectedAccount()
+                showSelectedAccount(it)
             }
         })
 
         navigation.setOnNavigationItemSelectedListener {
-            val accounts = viewModel.accounts.value!!
-            val position = viewModel.selectedAccountPosition.value!!
-            val accountId = accounts[position].id
+            val account = viewModel.selectedAccount.value!!
+            val accountId = account.id
             when (it.itemId) {
                 R.id.item_transactions -> showTransactions(accountId)
                 R.id.item_receive -> showAddresses(accountId)
@@ -104,7 +109,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, ITEM_FORGET, 0, "Forget device")
+        menu.add(0, ITEM_FORGET, 0, R.string.forget_device)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -152,8 +157,23 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     private fun showAccounts(accounts: List<Account>) {
-        accountsAdapter.accounts = accounts
+        accountsAdapter.items = createAccountItems(accounts)
         accountsAdapter.notifyDataSetChanged()
+    }
+
+    private fun createAccountItems(accounts: List<Account>): List<Item> {
+        val items = mutableListOf<Item>()
+        var legacy = false
+        for (account in accounts) {
+            if (!legacy && account.legacy) {
+                legacy = true
+                items.add(AddAccountItem(false))
+                items.add(AccountSectionItem(R.string.legacy_accounts))
+            }
+            items.add(AccountItem(account))
+        }
+        items.add(AddAccountItem(true))
+        return items
     }
 
     private fun showTransactions(accountId: String) {
@@ -172,12 +192,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         replaceFragment(f)
     }
 
-    private fun showSelectedAccount() {
-        val accounts = viewModel.accounts.value
-        val selectedAccountPosition = viewModel.selectedAccountPosition.value
-        if (accounts != null && selectedAccountPosition != null && accounts.size > selectedAccountPosition) {
-            showTransactions(accounts[selectedAccountPosition].id)
-        }
+    private fun showSelectedAccount(account: Account) {
+        showTransactions(account.id)
 
         if (navigation.selectedItemId != R.id.item_transactions) {
             navigation.selectedItemId = R.id.item_transactions

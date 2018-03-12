@@ -18,4 +18,8 @@
     <string name="legacy_account_x">Legacy Account #%d</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="address">Address</string>
+    <string name="forget_device">Forget Device</string>
+    <string name="legacy_accounts">Legacy Accounts</string>
+    <string name="add_account">Add Account</string>
+    <string name="add_legacy_account">Add Legacy Account</string>
 </resources>

@@ -24,6 +24,9 @@ interface AccountDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(account: Account)
 
+    @Query("UPDATE accounts SET balance = :balance WHERE id = :id")
+    fun updateBalance(id: String, balance: Double)
+
     @Query("DELETE FROM accounts")
     fun deleteAll()
 }

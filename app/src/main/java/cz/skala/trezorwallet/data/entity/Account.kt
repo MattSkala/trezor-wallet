@@ -17,7 +17,7 @@ class Account(
         val index: Int,
         val legacy: Boolean,
         val label: String?,
-        val balance: Int
+        val balance: Double
 ) {
     fun getDisplayLabel(resources: Resources): String {
         return when {

@@ -15,15 +15,17 @@ class MainViewModel(database: AppDatabase) : ViewModel() {
         database.accountDao().getAllLiveData()
     }
 
-    val selectedAccountPosition = MutableLiveData<Int>()
-
-    init {
-        selectedAccountPosition.value = 0
-    }
+    val selectedAccount = MutableLiveData<Account>()
 
     class Factory(val database: AppDatabase) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             return MainViewModel(database) as T
+        }
+    }
+
+    fun setSelectedAccount(account: Account) {
+        if (selectedAccount.value != account) {
+            selectedAccount.value = account
         }
     }
 }

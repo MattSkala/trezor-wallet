@@ -79,7 +79,8 @@ class TransactionsViewModel(
                 saveAddresses(externalChainAddressEntities)
                 saveAddresses(createAddressEntities(changeAddresses, true))
 
-                fetcher.calculateBalance(txs, myAddresses)
+                val balance = fetcher.calculateBalance(txs, myAddresses)
+                database.accountDao().updateBalance(accountId, balance)
 
                 transactions
             }.await()
