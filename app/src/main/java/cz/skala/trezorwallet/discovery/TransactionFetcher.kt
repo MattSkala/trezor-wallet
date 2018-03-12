@@ -2,6 +2,7 @@ package cz.skala.trezorwallet.discovery
 
 import android.util.Log
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
+import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.insight.response.Tx
 
@@ -18,7 +19,11 @@ class TransactionFetcher(val insightApi: InsightApiService) {
     /**
      * Fetches transactions for all active addresses in an account.
      */
-    fun fetchTransactionsForAccount(accountNode: ExtendedPublicKey): Triple<Set<Tx>, List<String>, List<String>> {
+    fun fetchTransactionsForAccount(account: Account): Triple<Set<Tx>, List<String>, List<String>> {
+        val publicKey = account.publicKey
+        val chainCode = account.chainCode
+        val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
+
         val externalChainNode = accountNode.deriveChildKey(0)
         val changeNode = accountNode.deriveChildKey(1)
 
@@ -27,22 +32,22 @@ class TransactionFetcher(val insightApi: InsightApiService) {
         val changeAddresses = mutableListOf<String>()
 
         Log.d(TAG, "fetchTransactionsForChainNode 0")
-        txs += fetchTransactionsForChainNode(externalChainNode, externalChainAddresses)
+        txs += fetchTransactionsForChainNode(externalChainNode, externalChainAddresses, account.legacy)
 
         Log.d(TAG, "fetchTransactionsForChainNode 1")
-        txs += fetchTransactionsForChainNode(changeNode, changeAddresses)
+        txs += fetchTransactionsForChainNode(changeNode, changeAddresses, account.legacy)
 
         return Triple(txs, externalChainAddresses, changeAddresses)
     }
 
-    private fun fetchTransactionsForChainNode(externalChainNode: ExtendedPublicKey, addresses: MutableList<String>): List<Tx> {
+    private fun fetchTransactionsForChainNode(externalChainNode: ExtendedPublicKey, addresses: MutableList<String>, legacy: Boolean): List<Tx> {
         var from = 0
         val txs = mutableListOf<Tx>()
         do {
             val addrs = mutableListOf<String>()
             for (addressIndex in from until from + GAP_SIZE) {
                 val addressNode = externalChainNode.deriveChildKey(addressIndex)
-                val address = addressNode.getAddress()
+                val address = if (legacy) addressNode.getAddress() else addressNode.getSegwitAddress()
                 addrs.add(address)
                 Log.d(TAG, "/$addressIndex $address")
             }

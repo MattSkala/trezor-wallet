@@ -75,4 +75,18 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
         val hash160 = hash160(publicKeyEncoded)
         return encodeBase58Check(hash160, 0)
     }
+
+    /**
+     * Encodes the public key as a P2SH(P2WPKH) address.
+     */
+    fun getSegwitAddress(): String {
+        val publicKeyEncoded = publicKey.getEncoded(true)
+        val publicKeyHash = hash160(publicKeyEncoded)
+        val scriptSig = ByteArray(publicKeyHash.size + 2)
+        scriptSig[0] = 0x00 // version 0
+        scriptSig[1] = 0x14 // push 20 bytes
+        System.arraycopy(publicKeyHash, 0, scriptSig, 2, publicKeyHash.size)
+        val scriptSigHash = hash160(scriptSig)
+        return encodeBase58Check(scriptSigHash, 5)
+    }
 }

@@ -5,7 +5,6 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
-import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.*
@@ -68,11 +67,7 @@ class TransactionsViewModel(
             refreshing.value = true
             bg {
                 val account = database.accountDao().getById(accountId)
-                val publicKey = account.publicKey
-                val chainCode = account.chainCode
-                val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
-
-                val (txs, externalChainAddresses, changeAddresses) = fetcher.fetchTransactionsForAccount(accountNode)
+                val (txs, externalChainAddresses, changeAddresses) = fetcher.fetchTransactionsForAccount(account)
 
                 val myAddresses = externalChainAddresses + changeAddresses
                 val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)

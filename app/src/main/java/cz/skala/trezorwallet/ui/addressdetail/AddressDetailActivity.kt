@@ -12,6 +12,7 @@ import com.github.salomonbrys.kodein.instance
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.intents.ui.data.CheckAddressRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
+import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
@@ -97,10 +98,14 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     private fun showOnTrezor(address: Address, account: Account) {
+        val path = address.getPath(account)
         val message = TrezorMessage.GetAddress.newBuilder()
-                .addAllAddressN(address.getPath(account).asList())
+                .addAllAddressN(path.asList())
                 .setShowDisplay(true)
+                .setScriptType(if (account.legacy) TrezorType.InputScriptType.SPENDADDRESS else
+                    TrezorType.InputScriptType.SPENDP2SHWITNESS)
                 .build()
+
         val intent = TrezorActivity.createIntent(this, CheckAddressRequest(message, address.address))
         startActivity(intent)
     }

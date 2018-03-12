@@ -15,7 +15,7 @@ interface AccountDao {
     @Query("SELECT * FROM accounts")
     fun getAll(): List<Account>
 
-    @Query("SELECT * FROM accounts")
+    @Query("SELECT * FROM accounts ORDER BY `legacy`, `index` ASC")
     fun getAllLiveData(): LiveData<List<Account>>
 
     @Query("SELECT * FROM accounts WHERE id = :id")

@@ -37,7 +37,7 @@ class AccountsAdapter : RecyclerView.Adapter<AccountsAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(account: Account, selected: Boolean) = with(itemView) {
-            txtAccountLabel.text = account.label ?: "Legacy Account #${account.index + 1}"
+            txtAccountLabel.text = account.getDisplayLabel(resources)
             isSelected = selected
         }
     }

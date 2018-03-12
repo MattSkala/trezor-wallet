@@ -19,7 +19,7 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
      * Scans account external chain addresses for transactions.
      * @return True if any transactions are found, false otherwise.
      */
-    fun scanAccount(node: TrezorType.HDNodeType): Boolean {
+    fun scanAccount(node: TrezorType.HDNodeType, legacy: Boolean): Boolean {
         try {
             val publicKey = node.publicKey.toByteArray()
             val chainCode = node.chainCode.toByteArray()
@@ -27,20 +27,24 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
             val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
             val externalChainNode = accountNode.deriveChildKey(0)
 
-            return scanTransactionsForChainNode(externalChainNode)
+            return scanTransactionsForChainNode(externalChainNode, legacy)
         } catch (e: InvalidKeyException) {
             e.printStackTrace()
         }
         return false
     }
 
-    private fun scanTransactionsForChainNode(externalChainNode: ExtendedPublicKey): Boolean {
+    private fun scanTransactionsForChainNode(externalChainNode: ExtendedPublicKey, legacy: Boolean): Boolean {
         val addrs = mutableListOf<String>()
         for (addressIndex in 0 until GAP_SIZE) {
             val addressNode = externalChainNode.deriveChildKey(addressIndex)
-            val address = addressNode.getAddress()
+            val address = if (legacy) {
+                addressNode.getAddress()
+            } else {
+                addressNode.getSegwitAddress()
+            }
             addrs.add(address)
-            Log.d(TAG, "/$addressIndex $address")
+            Log.d(TAG, "/$addressIndex $address ($legacy)")
         }
         val page = fetcher.fetchTransactionsPage(addrs, 0, 50)
         return page.isNotEmpty()
