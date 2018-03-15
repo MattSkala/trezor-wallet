@@ -4,15 +4,12 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import com.github.salomonbrys.kodein.KodeinInjector
 import com.github.salomonbrys.kodein.android.appKodein
 import com.github.salomonbrys.kodein.instance
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
-import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyRequest
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import com.satoshilabs.trezor.intents.ui.data.InitializeRequest
-import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
@@ -37,10 +34,6 @@ class GetStartedActivity : AppCompatActivity() {
 
         private const val REQUEST_INITIALIZE = 1
         private const val REQUEST_GET_PUBLIC_KEY = 2
-
-        private const val PURPOSE_BIP44 = 44
-        private const val PURPOSE_BIP49 = 49
-        private const val COIN_BITCOIN = 0
     }
 
     private val injector = KodeinInjector()
@@ -81,21 +74,9 @@ class GetStartedActivity : AppCompatActivity() {
     }
 
     private fun getPublicKeyForAccount(i: Int, legacy: Boolean) {
-        val purpose = if (legacy) ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP44 else
-            ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP49
-        val coinType = ExtendedPublicKey.HARDENED_IDX + COIN_BITCOIN
-        val account = ExtendedPublicKey.HARDENED_IDX + i
-        val message = TrezorMessage.GetPublicKey.newBuilder()
-                .addAddressN(purpose.toInt())
-                .addAddressN(coinType.toInt())
-                .addAddressN(account.toInt())
-                .build()
         this.legacy = legacy
-        Log.d(TAG, "getPublicKeyForAccount: " + i + " " + legacy + " => " +
-                (purpose - ExtendedPublicKey.HARDENED_IDX) + " " +
-                (coinType - ExtendedPublicKey.HARDENED_IDX) + " " +
-                (account - ExtendedPublicKey.HARDENED_IDX))
-        val intent = TrezorActivity.createIntent(this, GetPublicKeyRequest(message))
+        val request = AccountDiscoveryManager.createGetPublicKeyRequest(i, legacy)
+        val intent = TrezorActivity.createIntent(this, request)
         startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
     }
 
@@ -122,12 +103,7 @@ class GetStartedActivity : AppCompatActivity() {
     }
 
     private fun saveAccount(node: TrezorType.HDNodeType, legacy: Boolean) {
-        val publicKey = node.publicKey.toByteArray()
-        val chainCode = node.chainCode.toByteArray()
-        val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
-        val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
-        val account = Account(accountNode.getAddress(), publicKey, chainCode, index,
-                legacy, null, 0.0)
+        val account = Account.fromNode(node, legacy)
         database.accountDao().insert(account)
     }
 

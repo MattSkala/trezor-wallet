@@ -12,7 +12,7 @@ import cz.skala.trezorwallet.data.entity.Account
  */
 @Dao
 interface AccountDao {
-    @Query("SELECT * FROM accounts")
+    @Query("SELECT * FROM accounts ORDER BY `legacy`, `index` ASC")
     fun getAll(): List<Account>
 
     @Query("SELECT * FROM accounts ORDER BY `legacy`, `index` ASC")

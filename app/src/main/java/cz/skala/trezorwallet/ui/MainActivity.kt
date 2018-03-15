@@ -1,5 +1,6 @@
 package cz.skala.trezorwallet.ui
 
+import android.app.Activity
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
@@ -11,8 +12,11 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
+import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
+import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.AppDatabase
@@ -36,6 +40,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         private const val TAG = "MainActivity"
 
         private const val ITEM_FORGET = 10
+        private const val REQUEST_GET_PUBLIC_KEY = 2
     }
 
     override val injector = KodeinInjector()
@@ -69,6 +74,10 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             drawerLayout.closeDrawers()
         }
 
+        accountsAdapter.onAddAccountListener = {
+            viewModel.addAccount(it)
+        }
+
         accountsList.adapter = accountsAdapter
         accountsList.layoutManager = LinearLayoutManager(this)
 
@@ -89,6 +98,17 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             if (it != null) {
                 showSelectedAccount(it)
             }
+        })
+
+        viewModel.onTrezorRequest.observe(this, Observer {
+            if (it != null) {
+                val intent = TrezorActivity.createIntent(this, it)
+                startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
+            }
+        })
+
+        viewModel.onLastAccountEmpty.observe(this, Observer {
+            Toast.makeText(applicationContext, R.string.last_account_empty, Toast.LENGTH_LONG).show()
         })
 
         navigation.setOnNavigationItemSelectedListener {
@@ -125,6 +145,17 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        when (requestCode) {
+            REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
+                val result = TrezorActivity.getResult(data) as GetPublicKeyResult
+                val node = result.message.node
+                viewModel.saveAccount(node)
+            }
+            else -> super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
