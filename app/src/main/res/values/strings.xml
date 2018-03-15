@@ -25,4 +25,13 @@
     <string name="last_account_empty">To add a new account, the last account must have some transactions.</string>
     <string name="no_transactions">No transactions, yet.</string>
     <string name="hide_account">Hide this account</string>
+    <string name="transaction">Transaction</string>
+    <string name="hash">Hash</string>
+    <string name="confirmed">Confirmed</string>
+    <string name="in_block_x">In block #%s</string>
+    <string name="show_on_web">Open Blockchain.info</string>
+    <string name="sat_per_byte">%s sat/byte</string>
+    <string name="inputs">Inputs</string>
+    <string name="outputs">Outputs</string>
+    <string name="fee">Fee</string>
 </resources>

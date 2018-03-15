@@ -2,6 +2,7 @@ package cz.skala.trezorwallet.ui.transactions
 
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
+import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
@@ -11,6 +12,8 @@ import android.view.ViewGroup
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import cz.skala.trezorwallet.R
+import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.ui.transactiondetail.TransactionDetailActivity
 import kotlinx.android.synthetic.main.fragment_transactions.*
 
 
@@ -56,6 +59,10 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
         viewModel.empty.observe(this, Observer {
             empty.visibility = if (it == true) View.VISIBLE else View.GONE
         })
+
+        adapter.onTransactionClickListener = {
+            startTransactionDetailActivity(it)
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -80,5 +87,11 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
     override fun onDestroy() {
         destroyInjector()
         super.onDestroy()
+    }
+
+    private fun startTransactionDetailActivity(transaction: TransactionWithInOut) {
+        val intent = Intent(activity, TransactionDetailActivity::class.java)
+        intent.putExtra(TransactionDetailActivity.EXTRA_TXID, transaction.tx.txid)
+        startActivity(intent)
     }
 }

@@ -32,6 +32,8 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     var items: List<Item> = mutableListOf()
 
+    var onTransactionClickListener: ((TransactionWithInOut) -> Unit)? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
@@ -61,6 +63,9 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is TransactionViewHolder -> {
                 val item = items[position] as TransactionItem
                 holder.bind(item.transaction, item.rate, item.currencyCode)
+                holder.itemView.setOnClickListener {
+                    onTransactionClickListener?.invoke(item.transaction)
+                }
             }
         }
     }

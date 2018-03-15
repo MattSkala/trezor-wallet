@@ -31,6 +31,10 @@
         <activity android:name=".ui.addressdetail.AddressDetailActivity"
             android:label="@string/address"
             android:parentActivityName=".ui.MainActivity"/>
+
+        <activity android:name=".ui.transactiondetail.TransactionDetailActivity"
+            android:label="@string/transaction"
+            android:parentActivityName=".ui.MainActivity"/>
     </application>
 
 </manifest>

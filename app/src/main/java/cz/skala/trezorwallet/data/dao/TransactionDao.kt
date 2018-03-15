@@ -15,6 +15,10 @@ import cz.skala.trezorwallet.data.entity.TransactionWithInOut
  */
 @Dao
 abstract class TransactionDao {
+    @Query("SELECT * FROM transactions WHERE txid = :txid")
+    @android.arch.persistence.room.Transaction
+    abstract fun getByTxid(txid: String): TransactionWithInOut
+
     @Query("SELECT * FROM transactions WHERE account = :account")
     abstract fun getByAccount(account: String): List<Transaction>
 

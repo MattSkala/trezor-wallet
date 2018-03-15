@@ -28,12 +28,6 @@ class MainViewModel(val database: AppDatabase) : ViewModel() {
 
     private var isAccountRequestLegacy = false
 
-    class Factory(val database: AppDatabase) : ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return MainViewModel(database) as T
-        }
-    }
-
     fun setSelectedAccount(account: Account) {
         if (selectedAccount.value != account) {
             selectedAccount.value = account
@@ -69,6 +63,12 @@ class MainViewModel(val database: AppDatabase) : ViewModel() {
                 val account = Account.fromNode(node, isAccountRequestLegacy)
                 database.accountDao().insert(account)
             }.await()
+        }
+    }
+
+    class Factory(val database: AppDatabase) : ViewModelProvider.NewInstanceFactory() {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return MainViewModel(database) as T
         }
     }
 }
