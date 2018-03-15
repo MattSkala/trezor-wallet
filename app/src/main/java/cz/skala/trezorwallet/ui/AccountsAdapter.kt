@@ -25,7 +25,7 @@ class AccountsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     }
 
     var items: List<Item> = mutableListOf()
-    var selectedPosition = 0
+    var selectedAccount: Account? = null
     var onItemClickListener: ((account: Account) -> Unit)? = null
     var onAddAccountListener: ((legacy: Boolean) -> Unit)? = null
 
@@ -53,9 +53,9 @@ class AccountsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             TYPE_ACCOUNT -> {
                 holder as AccountViewHolder
                 val item = items[position] as AccountItem
-                holder.bind(item.account, selectedPosition == position)
+                holder.bind(item.account, selectedAccount == item.account)
                 holder.itemView.setOnClickListener {
-                    selectedPosition = holder.adapterPosition
+                    selectedAccount = holder.account
                     notifyDataSetChanged()
                     onItemClickListener?.invoke(item.account)
                 }
@@ -85,9 +85,12 @@ class AccountsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     }
 
     class AccountViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun bind(account: Account, selected: Boolean) = with(itemView) {
-            txtAccountLabel.text = account.getDisplayLabel(resources)
-            txtAccountBalance.text = formatBtcValue(account.balance, 2)
+        var account: Account? = null
+
+        fun bind(acc: Account, selected: Boolean) = with(itemView) {
+            account = acc
+            txtAccountLabel.text = acc.getDisplayLabel(resources)
+            txtAccountBalance.text = formatBtcValue(acc.balance, 2)
             isSelected = selected
         }
     }

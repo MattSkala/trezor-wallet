@@ -43,15 +43,17 @@ class MainViewModel(val database: AppDatabase) : ViewModel() {
     fun addAccount(legacy: Boolean) {
         launch(UI) {
             val lastAccount = bg {
-                 database.accountDao().getAll().last { it.legacy == legacy }
+                 database.accountDao().getAll().lastOrNull { it.legacy == legacy }
             }.await()
 
-            val lastAccountTransactions = bg {
-                database.transactionDao().getByAccount(lastAccount.id).size
-            }.await()
+            val lastAccountTransactions = if (lastAccount != null) {
+                bg {
+                    database.transactionDao().getByAccount(lastAccount.id).size
+                }.await()
+            } else 0
 
             if (lastAccountTransactions > 0) {
-                val newIndex = lastAccount.index + 1
+                val newIndex = if (lastAccount != null) lastAccount.index + 1 else 0
                 isAccountRequestLegacy = legacy
                 onTrezorRequest.value =
                         AccountDiscoveryManager.createGetPublicKeyRequest(newIndex, legacy)

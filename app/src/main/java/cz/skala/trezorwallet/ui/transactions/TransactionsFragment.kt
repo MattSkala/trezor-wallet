@@ -52,6 +52,10 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
         viewModel.refreshing.observe(this, Observer {
             swipeRefreshLayout.isRefreshing = (it == true)
         })
+
+        viewModel.empty.observe(this, Observer {
+            empty.visibility = if (it == true) View.VISIBLE else View.GONE
+        })
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -66,6 +70,10 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
 
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.fetchTransactions()
+        }
+
+        btnHideAccount.setOnClickListener {
+            viewModel.removeAccount()
         }
     }
 

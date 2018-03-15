@@ -23,4 +23,6 @@
     <string name="add_account">Add Account</string>
     <string name="add_legacy_account">Add Legacy Account</string>
     <string name="last_account_empty">To add a new account, the last account must have some transactions.</string>
+    <string name="no_transactions">No transactions, yet.</string>
+    <string name="hide_account">Hide this account</string>
 </resources>

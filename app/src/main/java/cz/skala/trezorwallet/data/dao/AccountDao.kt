@@ -29,4 +29,7 @@ interface AccountDao {
 
     @Query("DELETE FROM accounts")
     fun deleteAll()
+
+    @Query("DELETE FROM accounts WHERE id = :id")
+    fun deleteById(id: String)
 }

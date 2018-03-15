@@ -28,8 +28,8 @@ class TransactionsViewModel(
         private val prefs: PreferenceHelper
 ) : ViewModel() {
     val items = MutableLiveData<List<Item>>()
-
     val refreshing = MutableLiveData<Boolean>()
+    val empty = MutableLiveData<Boolean>()
 
     private var initialized = false
     private lateinit var accountId: String
@@ -88,6 +88,14 @@ class TransactionsViewModel(
         }
     }
 
+    fun removeAccount() {
+        launch(UI) {
+            bg {
+                database.accountDao().deleteById(accountId)
+            }.await()
+        }
+    }
+
     private fun loadTransactions() {
         transactionsLiveData.observeForever(transactionsObserver)
     }
@@ -124,6 +132,7 @@ class TransactionsViewModel(
         }
 
         this.items.value = items
+        this.empty.value = transactions.isEmpty()
     }
 
     private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>, changeAddresses: List<String>): List<TransactionWithInOut> {

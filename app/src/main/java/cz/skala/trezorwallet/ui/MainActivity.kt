@@ -85,8 +85,12 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             if (it != null) {
                 if (it.isNotEmpty()) {
                     showAccounts(it)
-                    if (viewModel.selectedAccount.value == null) {
-                        viewModel.setSelectedAccount(it.first())
+                    val selectedAccount = viewModel.selectedAccount.value
+                    if (selectedAccount == null || !it.contains(selectedAccount)) {
+                        val newSelectedAccount = it.first()
+                        viewModel.setSelectedAccount(newSelectedAccount)
+                        accountsAdapter.selectedAccount = newSelectedAccount
+                        accountsAdapter.notifyDataSetChanged()
                     }
                 } else {
                     forgetDevice()
