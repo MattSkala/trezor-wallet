@@ -27,6 +27,7 @@ import cz.skala.trezorwallet.data.item.AddAccountItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.ui.addresses.AddressesFragment
 import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
+import cz.skala.trezorwallet.ui.send.SendFragment
 import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.experimental.android.UI
@@ -121,7 +122,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             when (it.itemId) {
                 R.id.item_transactions -> showTransactions(accountId)
                 R.id.item_receive -> showAddresses(accountId)
-                R.id.item_send -> replaceFragment(Fragment())
+                R.id.item_send -> showSend(accountId)
             }
             true
         }
@@ -223,6 +224,14 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         val f = AddressesFragment()
         val args = Bundle()
         args.putString(AddressesFragment.ARG_ACCOUNT_ID, accountId)
+        f.arguments = args
+        replaceFragment(f)
+    }
+
+    private fun showSend(accountId: String) {
+        val f = SendFragment()
+        val args = Bundle()
+        args.putString(SendFragment.ARG_ACCOUNT_ID, accountId)
         f.arguments = args
         replaceFragment(f)
     }

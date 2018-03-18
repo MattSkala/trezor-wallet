@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/txtAddressLabel"
+            style="@style/InputLabel"
+            android:text="Address"/>
+
+        <EditText
+            android:id="@+id/edtAddress"
+            style="@style/InputEditText"
+            android:hint="Double check the address"
+            android:inputType="text"/>
+
+        <!--TextView
+            android:id="@+id/txtCommentLabel"
+            style="@style/InputLabel"
+            android:layout_marginTop="16dp"
+            android:text="Comment"/>
+
+        <EditText
+            android:id="@+id/edtComment"
+            style="@style/InputEditText"
+            android:inputType="textCapSentences"/-->
+
+        <TextView
+            android:id="@+id/txtAmountLabel"
+            style="@style/InputLabel"
+            android:layout_marginTop="16dp"
+            android:text="Amount"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/edtAmountBtc"
+                style="@style/InputEditText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:inputType="numberDecimal"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="BTC"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtFeeLabel"
+            style="@style/InputLabel"
+            android:layout_marginTop="16dp"
+            android:text="Fee"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/edtFee"
+                style="@style/InputEditText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:inputType="number"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="sat/B"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSend"
+            style="@style/AccentButton"
+            android:layout_width="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="24dp"
+            android:text="Send"/>
+    </LinearLayout>
+</ScrollView>

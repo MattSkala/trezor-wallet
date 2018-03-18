@@ -32,4 +32,19 @@
         <item name="android:drawablePadding">@dimen/button_padding_drawable</item>
         <item name="android:layout_height">52dp</item>
     </style>
+
+    <style name="InputLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="InputEditText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">-4dp</item>
+        <item name="android:layout_marginRight">-4dp</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+    </style>
 </resources>
