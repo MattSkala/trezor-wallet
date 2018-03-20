@@ -9,4 +9,5 @@ class TxIn(
         val txid: String,
         val vout: Int,
         val value: Double,
-        val valueSat: Long)
+        val valueSat: Long,
+        val scriptSig: ScriptSig)

@@ -15,6 +15,7 @@ import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.entity.TransactionInput
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 import cz.skala.trezorwallet.ui.formatBtcValue
 import kotlinx.android.synthetic.main.activity_transaction_detail.*
 import java.text.SimpleDateFormat
@@ -28,7 +29,6 @@ import kotlin.math.roundToInt
 class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
     companion object {
         const val EXTRA_TXID = "txid"
-        private const val BTC_TO_SATOSHI = 100000000
     }
 
     override val injector = KodeinInjector()
@@ -88,7 +88,7 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
             val date = Date(blocktime * 1000)
             txtBlockTime.text = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.LONG,
                     SimpleDateFormat.MEDIUM).format(date)
-            txtBlockHeight.text = getString(R.string.in_block_x, transaction.tx.blockheight)
+            txtBlockHeight.text = getString(R.string.in_block_x, transaction.tx.blockheight.toString())
         } else {
             txtConfirmed.setText(R.string.tx_unconfirmed)
             txtBlockTime.visibility = View.GONE
@@ -105,7 +105,7 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
 
         txtFee.text = formatBtcValue(transaction.tx.fee)
         val feePerByte = (transaction.tx.fee * BTC_TO_SATOSHI /transaction.tx.size).roundToInt()
-        txtFeePerByte.text = getString(R.string.sat_per_byte, feePerByte)
+        txtFeePerByte.text = getString(R.string.sat_per_byte, feePerByte.toString())
     }
 
     private fun addInputView(input: TransactionInput) {

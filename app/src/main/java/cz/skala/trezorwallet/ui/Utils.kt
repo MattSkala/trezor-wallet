@@ -19,3 +19,5 @@ fun formatPrice(value: Double, currencyCode: String): String {
     format.currency = Currency.getInstance(currencyCode)
     return format.format(value)
 }
+
+const val BTC_TO_SATOSHI = 100000000

@@ -2,6 +2,7 @@ package cz.skala.trezorwallet
 
 import android.app.Application
 import android.arch.persistence.room.Room
+import android.util.Log
 import com.github.salomonbrys.kodein.*
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
@@ -71,5 +72,12 @@ class TrezorApplication : Application(), KodeinAware {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
+        // Log exceptions from coroutines
+        val currentUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler({ thread, exception ->
+            Log.println(Log.ERROR, thread.name, Log.getStackTraceString(exception))
+            currentUncaughtExceptionHandler.uncaughtException(thread, exception)
+        })
     }
 }

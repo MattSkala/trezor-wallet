@@ -8,7 +8,7 @@ import javax.crypto.spec.SecretKeySpec
 
 const val HMAC_SHA512 = "HmacSHA512"
 const val SECP256K1 = "secp256k1"
-
+private const val HEX_CHARS = "0123456789ABCDEF"
 
 /**
  * Calculates HMAC-SHA512 of [data] with provided [key].

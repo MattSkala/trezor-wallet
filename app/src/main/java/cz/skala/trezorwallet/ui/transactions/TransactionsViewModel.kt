@@ -206,7 +206,7 @@ class TransactionsViewModel(
         )
 
         val vin = tx.vin.map {
-            TransactionInput(accountTxid, tx.txid, accountId, it.n, it.addr, it.value)
+            TransactionInput(accountTxid, tx.txid, accountId, it.n, it.addr, it.value, it.scriptSig.hex)
         }
 
         val vout = tx.vout.map {

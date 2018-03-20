@@ -12,5 +12,6 @@ class TransactionInput(
         val account: String,
         val n: Int,
         val addr: String,
-        val value: Double
+        val value: Double,
+        val scriptSig: String
 )

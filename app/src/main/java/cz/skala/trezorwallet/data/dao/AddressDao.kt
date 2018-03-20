@@ -12,6 +12,9 @@ import cz.skala.trezorwallet.data.entity.Address
  */
 @Dao
 interface AddressDao {
+    @Query("SELECT * FROM addresses WHERE account = :account AND address = :address")
+    fun getByAddress(account: String, address: String): Address
+
     @Query("SELECT * FROM addresses WHERE account = :account AND change = :change ORDER BY `index` ASC")
     fun getByAccount(account: String, change: Boolean): List<Address>
 

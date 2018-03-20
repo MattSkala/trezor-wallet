@@ -29,6 +29,10 @@ abstract class TransactionDao {
     @android.arch.persistence.room.Transaction
     abstract fun getByAccountLiveDataWithInOut(account: String): LiveData<List<TransactionWithInOut>>
 
+    @Query("SELECT * FROM transaction_outputs WHERE account = :account AND isMine = 1 " +
+            "AND spentTxId IS NULL")
+    abstract fun getUnspentOutputs(account: String): List<TransactionOutput>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun insert(transaction: Transaction)
 
