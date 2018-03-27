@@ -42,7 +42,8 @@ class TransactionsViewModel(
 
     private val transactionsObserver = Observer<List<TransactionWithInOut>> { txs ->
         if (txs != null) {
-            transactions = txs.sortedWith(compareBy({ it.tx.blockheight == -1 }, { it.tx.blockheight })).reversed()
+            transactions = txs.sortedWith(compareBy({ it.tx.blockheight == -1 },
+                    { it.tx.blockheight })).reversed()
             summary = createAccountSummary(txs)
             updateItems()
         }
@@ -67,14 +68,16 @@ class TransactionsViewModel(
             refreshing.value = true
             bg {
                 val account = database.accountDao().getById(accountId)
-                val (txs, externalChainAddresses, changeAddresses) = fetcher.fetchTransactionsForAccount(account)
+                val (txs, externalChainAddresses, changeAddresses) =
+                        fetcher.fetchTransactionsForAccount(account)
 
                 val myAddresses = externalChainAddresses + changeAddresses
                 val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)
 
                 saveTransactions(transactions)
 
-                val externalChainAddressEntities = createAddressEntities(externalChainAddresses, false)
+                val externalChainAddressEntities = createAddressEntities(externalChainAddresses,
+                        false)
                 calculateAddressTotalReceived(txs, externalChainAddressEntities)
                 saveAddresses(externalChainAddressEntities)
                 saveAddresses(createAddressEntities(changeAddresses, true))
@@ -135,13 +138,15 @@ class TransactionsViewModel(
         this.empty.value = transactions.isEmpty()
     }
 
-    private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>, changeAddresses: List<String>): List<TransactionWithInOut> {
+    private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>,
+                                          changeAddresses: List<String>): List<TransactionWithInOut> {
         return txs.map {
             createTransactionEntity(it, accountId, addresses, changeAddresses)
         }
     }
 
-    private fun createTransactionEntity(tx: Tx, accountId: String, myAddresses: List<String>, changeAddresses: List<String>): TransactionWithInOut {
+    private fun createTransactionEntity(tx: Tx, accountId: String, myAddresses: List<String>,
+                                        changeAddresses: List<String>): TransactionWithInOut {
         val isSent = tx.vin.all {
             myAddresses.contains(it.addr)
         }
@@ -202,11 +207,13 @@ class TransactionsViewModel(
                 tx.confirmations,
                 type,
                 value,
-                tx.fees
+                tx.fees,
+                tx.locktime
         )
 
         val vin = tx.vin.map {
-            TransactionInput(accountTxid, tx.txid, accountId, it.n, it.addr, it.value, it.scriptSig.hex)
+            TransactionInput(accountTxid, accountId, it.n, it.txid, it.vout, it.addr, it.value,
+                    it.scriptSig.hex, it.sequence)
         }
 
         val vout = tx.vout.map {
@@ -214,7 +221,8 @@ class TransactionsViewModel(
             val isMine = myAddress != null
             val address = myAddress ?: it.scriptPubKey.addresses?.get(0)
             val isChange = changeAddresses.contains(address)
-            TransactionOutput(accountTxid, tx.txid, accountId, it.n, address, it.value.toDouble(), it.spentTxId, isMine, isChange)
+            TransactionOutput(accountTxid, accountId, tx.txid, it.n, address,
+                    it.value.toDouble(), it.spentTxId, isMine, isChange, it.scriptPubKey.hex)
         }
 
         return TransactionWithInOut(transaction, vin, vout)

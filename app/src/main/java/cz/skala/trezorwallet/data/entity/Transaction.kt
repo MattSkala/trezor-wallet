@@ -21,7 +21,8 @@ class Transaction(
         val confirmations: Int,
         val type: Type,
         val value: Double,
-        val fee: Double
+        val fee: Double,
+        val locktime: Int
 ) {
     enum class Type {
         SELF, RECV, SENT

@@ -10,4 +10,5 @@ class TxIn(
         val vout: Int,
         val value: Double,
         val valueSat: Long,
-        val scriptSig: ScriptSig)
+        val scriptSig: ScriptSig,
+        val sequence: Long)

@@ -20,7 +20,7 @@ import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.ui.MainActivity
 import kotlinx.android.synthetic.main.activity_get_started.*
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
+import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.jetbrains.anko.defaultSharedPreferences
 
@@ -81,7 +81,7 @@ class GetStartedActivity : AppCompatActivity() {
     }
 
     private fun scanAccount(node: TrezorType.HDNodeType) {
-        async(UI) {
+        launch(UI) {
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
 
             val hasTransactions = bg {

@@ -1,9 +1,12 @@
 package cz.skala.trezorwallet.ui.send
 
+import android.app.Activity
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
+import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -55,47 +58,61 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         super.onViewCreated(view, savedInstanceState)
 
         btnSend.setOnClickListener {
-            if (edtAddress.text.isEmpty()) {
-                edtAddress.error = "Missing address"
-                return@setOnClickListener
+            handleSendClick()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        when (requestCode) {
+            REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
+                val signedIx = data!!.getStringExtra(TrezorActivity.EXTRA_SIGNED_TX)
+                Log.d("SendFragment", "signedTx: $signedIx")
             }
-
-            if (edtAmountBtc.text.isEmpty()) {
-                edtAmountBtc.error = "Missing amount"
-                return@setOnClickListener
-            }
-
-            if (edtFee.text.isEmpty()) {
-                edtFee.error = "Missing fee"
-                return@setOnClickListener
-            }
-
-            val account = arguments!!.getString(ARG_ACCOUNT_ID)
-            val address = edtAddress.text.toString()
-            val amount = edtAmountBtc.text.toString().toDouble()
-            val fee = edtFee.text.toString().toInt()
-
-            if (!viewModel.validateAddress(address)) {
-                edtAddress.error = "Invalid address"
-                return@setOnClickListener
-            }
-
-            if (!viewModel.validateAmount(amount)) {
-                edtAmountBtc.error = "Invalid amount"
-                return@setOnClickListener
-            }
-
-            if (!viewModel.validateFee(fee)) {
-                edtFee.error = "Invalid fee"
-                return@setOnClickListener
-            }
-
-            viewModel.composeTransaction(account, address, amount, fee)
+            else -> super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
     override fun onDestroy() {
         destroyInjector()
         super.onDestroy()
+    }
+
+    private fun handleSendClick() {
+        if (edtAddress.text.isEmpty()) {
+            edtAddress.error = "Missing address"
+            return
+        }
+
+        if (edtAmountBtc.text.isEmpty()) {
+            edtAmountBtc.error = "Missing amount"
+            return
+        }
+
+        if (edtFee.text.isEmpty()) {
+            edtFee.error = "Missing fee"
+            return
+        }
+
+        val account = arguments!!.getString(ARG_ACCOUNT_ID)
+        val address = edtAddress.text.toString()
+        val amount = edtAmountBtc.text.toString().toDouble()
+        val fee = edtFee.text.toString().toInt()
+
+        if (!viewModel.validateAddress(address)) {
+            edtAddress.error = "Invalid address"
+            return
+        }
+
+        if (!viewModel.validateAmount(amount)) {
+            edtAmountBtc.error = "Invalid amount"
+            return
+        }
+
+        if (!viewModel.validateFee(fee)) {
+            edtFee.error = "Invalid fee"
+            return
+        }
+
+        viewModel.composeTransaction(account, address, amount, fee)
     }
 }
