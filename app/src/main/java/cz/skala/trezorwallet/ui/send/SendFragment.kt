@@ -6,6 +6,8 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -14,7 +16,9 @@ import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import cz.skala.trezorwallet.R
+import cz.skala.trezorwallet.data.PreferenceHelper
 import kotlinx.android.synthetic.main.fragment_send.*
+import java.util.*
 
 
 /**
@@ -28,11 +32,12 @@ class SendFragment : Fragment(), SupportFragmentInjector {
     }
 
     override val injector = KodeinInjector()
+    private val prefs: PreferenceHelper by injector.instance()
     private val viewModel: SendViewModel by injector.instance()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<SendViewModel>() with provider {
-            val factory = SendViewModel.Factory(instance())
+            val factory = SendViewModel.Factory(instance(), instance())
             ViewModelProviders.of(this@SendFragment, factory)[SendViewModel::class.java]
         }
     }
@@ -41,6 +46,28 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         super.onCreate(savedInstanceState)
 
         initializeInjector()
+
+        viewModel.amountBtc.observe(this, Observer {
+            if (it != null && !edtAmountBtc.isFocused) {
+                if (it > 0) {
+                    val value = java.lang.String.format(Locale.ENGLISH, "%.8f", it)
+                    edtAmountBtc.setText(value)
+                } else {
+                    edtAmountBtc.text = null
+                }
+            }
+        })
+
+        viewModel.amountUsd.observe(this, Observer {
+            if (it != null && !edtAmountUsd.isFocused) {
+                if (it > 0) {
+                    val value = java.lang.String.format(Locale.ENGLISH, "%.2f", it)
+                    edtAmountUsd.setText(value)
+                } else {
+                    edtAmountUsd.text = null
+                }
+            }
+        })
 
         viewModel.trezorRequest.observe(this, Observer {
             if (it != null) {
@@ -60,6 +87,34 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         btnSend.setOnClickListener {
             handleSendClick()
         }
+
+        edtAmountBtc.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val value = s.toString().toDoubleOrNull() ?: 0.0
+                viewModel.setAmountBtc(value)
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+            }
+        })
+
+        edtAmountUsd.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val value = s.toString().toDoubleOrNull() ?: 0.0
+                viewModel.setAmountUsd(value)
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+            }
+        })
+
+        txtCurrencyCode.text = prefs.currencyCode
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

@@ -1,11 +1,13 @@
 package cz.skala.trezorwallet.ui.send
 
+import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import com.satoshilabs.trezor.intents.ui.data.SignTxRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
@@ -14,11 +16,13 @@ import org.jetbrains.anko.coroutines.experimental.bg
 /**
  * A ViewModel for SendFragment.
  */
-class SendViewModel(val database: AppDatabase) : ViewModel() {
+class SendViewModel(val database: AppDatabase, val prefs: PreferenceHelper) : ViewModel() {
     companion object {
         private const val TAG = "SendViewModel"
     }
 
+    val amountBtc = MutableLiveData<Double>()
+    val amountUsd = MutableLiveData<Double>()
     val trezorRequest = SingleLiveEvent<TrezorRequest>()
 
     private val composer = TransactionComposer(database)
@@ -41,6 +45,20 @@ class SendViewModel(val database: AppDatabase) : ViewModel() {
         }
     }
 
+    fun setAmountBtc(value: Double) {
+        if (amountBtc.value != value) {
+            amountBtc.value = value
+            amountUsd.value = value * prefs.rate
+        }
+    }
+
+    fun setAmountUsd(value: Double) {
+        if (amountUsd.value != value) {
+            amountUsd.value = value
+            amountBtc.value = value / prefs.rate
+        }
+    }
+
     fun validateAddress(address: String): Boolean {
         // TODO
         return true
@@ -56,9 +74,9 @@ class SendViewModel(val database: AppDatabase) : ViewModel() {
         return true
     }
 
-    class Factory(val database: AppDatabase) : ViewModelProvider.NewInstanceFactory() {
+    class Factory(val database: AppDatabase, val prefs: PreferenceHelper) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return SendViewModel(database) as T
+            return SendViewModel(database, prefs) as T
         }
     }
 }
