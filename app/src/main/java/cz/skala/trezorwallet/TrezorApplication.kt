@@ -5,6 +5,7 @@ import android.arch.persistence.room.Room
 import android.util.Log
 import com.github.salomonbrys.kodein.*
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
+import cz.skala.trezorwallet.compose.FeeEstimator
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
@@ -56,6 +57,10 @@ class TrezorApplication : Application(), KodeinAware {
 
         bind<PreferenceHelper>() with singleton {
             PreferenceHelper(applicationContext)
+        }
+
+        bind<FeeEstimator>() with singleton {
+            FeeEstimator(instance())
         }
     }
 

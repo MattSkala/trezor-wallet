@@ -16,4 +16,11 @@ interface InsightApiService {
     @GET("addrs/{addrs}/txs")
     fun getAddrsTxs(@Path("addrs") addrs: String, @Query("from") from: Int,
                     @Query("to") to: Int): Call<AddrsTxsResponse>
+
+    /**
+     * Estimates fee in BTC/kb for new tx to be included within the first x blocks. Can be used to
+     * retrieve multiple estimates by separating blocks numbers by a comma.
+     */
+    @GET("utils/estimatefee")
+    fun estimateFee(@Query("nbBlocks") blocks: String): Call<Map<String, Double>>
 }

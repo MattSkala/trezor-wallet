@@ -92,22 +92,26 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <!--Spinner
-                android:id="@+id/fee"
+            <Spinner
+                android:id="@+id/spnFee"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/-->
+                android:layout_height="60dp"
+                android:layout_marginEnd="16dp"/>
 
             <EditText
                 android:id="@+id/edtFee"
                 style="@style/InputEditText"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:inputType="number"/>
+                android:inputType="number"
+                android:visibility="gone"/>
 
             <TextView
+                android:id="@+id/txtFeeUnits"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:visibility="gone"
                 android:text="sat/B"/>
         </LinearLayout>
 

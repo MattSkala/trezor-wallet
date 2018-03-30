@@ -12,11 +12,15 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.AdapterView.OnItemSelectedListener
+import android.widget.ArrayAdapter
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.PreferenceHelper
+import cz.skala.trezorwallet.data.entity.FeeLevel
 import kotlinx.android.synthetic.main.fragment_send.*
 import java.util.*
 
@@ -28,7 +32,8 @@ class SendFragment : Fragment(), SupportFragmentInjector {
     companion object {
         const val ARG_ACCOUNT_ID = "account_id"
 
-        const val REQUEST_SIGN = 30
+        private const val REQUEST_SIGN = 30
+        private const val FEE_SPINNER_POSITION_CUSTOM = 4
     }
 
     override val injector = KodeinInjector()
@@ -37,7 +42,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<SendViewModel>() with provider {
-            val factory = SendViewModel.Factory(instance(), instance())
+            val factory = SendViewModel.Factory(instance(), instance(), instance())
             ViewModelProviders.of(this@SendFragment, factory)[SendViewModel::class.java]
         }
     }
@@ -46,6 +51,8 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         super.onCreate(savedInstanceState)
 
         initializeInjector()
+
+        viewModel.start()
 
         viewModel.amountBtc.observe(this, Observer {
             if (it != null && !edtAmountBtc.isFocused) {
@@ -115,6 +122,8 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         })
 
         txtCurrencyCode.text = prefs.currencyCode
+
+        initFeeSpinner()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -132,6 +141,40 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         super.onDestroy()
     }
 
+    private fun initFeeSpinner() {
+        viewModel.recommendedFees.observe(this, Observer { fees ->
+            if (fees != null) {
+                val spinnerList = FeeLevel.values().map { level ->
+                    val fee = fees[level]
+                    resources.getString(level.titleRes) + " ($fee sat/B)"
+                }.toMutableList()
+                spinnerList.add(resources.getString(R.string.fee_custom))
+                updateFeeSpinnerAdapter(spinnerList)
+            }
+        })
+
+        spnFee.onItemSelectedListener = object : OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val isCustom = (position == FEE_SPINNER_POSITION_CUSTOM)
+                edtFee.visibility = if (isCustom) View.VISIBLE else View.GONE
+                txtFeeUnits.visibility = if (isCustom) View.VISIBLE else View.GONE
+                if (isCustom) {
+                    edtFee.requestFocus()
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+            }
+        }
+    }
+
+    private fun updateFeeSpinnerAdapter(list: List<String>) {
+        val spinnerAdapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_dropdown_item, list)
+        val selectedItem = if (spnFee.adapter != null) spnFee.selectedItemPosition else 1
+        spnFee.adapter = spinnerAdapter
+        spnFee.setSelection(selectedItem)
+    }
+
     private fun handleSendClick() {
         if (edtAddress.text.isEmpty()) {
             edtAddress.error = "Missing address"
@@ -143,7 +186,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             return
         }
 
-        if (edtFee.text.isEmpty()) {
+        if (spnFee.selectedItemPosition == FEE_SPINNER_POSITION_CUSTOM && edtFee.text.isEmpty()) {
             edtFee.error = "Missing fee"
             return
         }
@@ -151,7 +194,13 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         val account = arguments!!.getString(ARG_ACCOUNT_ID)
         val address = edtAddress.text.toString()
         val amount = edtAmountBtc.text.toString().toDouble()
-        val fee = edtFee.text.toString().toInt()
+
+        val fee = if (spnFee.selectedItemPosition == FEE_SPINNER_POSITION_CUSTOM) {
+            edtFee.text.toString().toInt()
+        } else {
+            val selectedFeeLevel = FeeLevel.values()[spnFee.selectedItemPosition]
+            viewModel.recommendedFees.value!![selectedFeeLevel]!!
+        }
 
         if (!viewModel.validateAddress(address)) {
             edtAddress.error = "Invalid address"

@@ -34,4 +34,9 @@
     <string name="inputs">Inputs</string>
     <string name="outputs">Outputs</string>
     <string name="fee">Fee</string>
+    <string name="fee_high">High</string>
+    <string name="fee_normal">Normal</string>
+    <string name="fee_economy">Economy</string>
+    <string name="fee_low">Low</string>
+    <string name="fee_custom">Custom</string>
 </resources>

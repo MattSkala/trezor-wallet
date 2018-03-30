@@ -5,9 +5,11 @@ import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import com.satoshilabs.trezor.intents.ui.data.SignTxRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
+import cz.skala.trezorwallet.compose.FeeEstimator
 import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
+import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
@@ -16,16 +18,31 @@ import org.jetbrains.anko.coroutines.experimental.bg
 /**
  * A ViewModel for SendFragment.
  */
-class SendViewModel(val database: AppDatabase, val prefs: PreferenceHelper) : ViewModel() {
+class SendViewModel(
+        val database: AppDatabase,
+        val prefs: PreferenceHelper,
+        val feeEstimator: FeeEstimator
+) : ViewModel() {
     companion object {
         private const val TAG = "SendViewModel"
     }
 
+    private var initialized = false
+
     val amountBtc = MutableLiveData<Double>()
     val amountUsd = MutableLiveData<Double>()
     val trezorRequest = SingleLiveEvent<TrezorRequest>()
+    val recommendedFees = MutableLiveData<Map<FeeLevel, Int>>()
 
     private val composer = TransactionComposer(database)
+
+    fun start() {
+        if (!initialized) {
+            initRecommendedFees()
+            fetchRecommendedFees()
+            initialized = true
+        }
+    }
 
     /**
      * Composes a new transaction asynchronously and returns the result in [trezorRequest].
@@ -59,6 +76,36 @@ class SendViewModel(val database: AppDatabase, val prefs: PreferenceHelper) : Vi
         }
     }
 
+    private fun initRecommendedFees() {
+        recommendedFees.value = mapOf(
+                FeeLevel.HIGH to prefs.feeHigh,
+                FeeLevel.NORMAL to prefs.feeNormal,
+                FeeLevel.ECONOMY to prefs.feeEconomy,
+                FeeLevel.LOW to prefs.feeLow
+        )
+    }
+
+    private fun fetchRecommendedFees() {
+        launch(UI) {
+            val fees = feeEstimator.fetchRecommendedFees()
+            if (fees != null) {
+                fees[FeeLevel.HIGH]?.let {
+                    prefs.feeHigh = it
+                }
+                fees[FeeLevel.NORMAL]?.let {
+                    prefs.feeNormal = it
+                }
+                fees[FeeLevel.ECONOMY]?.let {
+                    prefs.feeEconomy = it
+                }
+                fees[FeeLevel.LOW]?.let {
+                    prefs.feeLow = it
+                }
+                recommendedFees.value = fees
+            }
+        }
+    }
+
     fun validateAddress(address: String): Boolean {
         // TODO
         return true
@@ -74,9 +121,10 @@ class SendViewModel(val database: AppDatabase, val prefs: PreferenceHelper) : Vi
         return true
     }
 
-    class Factory(val database: AppDatabase, val prefs: PreferenceHelper) : ViewModelProvider.NewInstanceFactory() {
+    class Factory(val database: AppDatabase, val prefs: PreferenceHelper,
+                  val feeEstimator: FeeEstimator) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return SendViewModel(database, prefs) as T
+            return SendViewModel(database, prefs, feeEstimator) as T
         }
     }
 }
