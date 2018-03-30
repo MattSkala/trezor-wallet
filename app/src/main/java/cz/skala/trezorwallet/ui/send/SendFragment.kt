@@ -4,6 +4,7 @@ import android.app.Activity
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.text.Editable
@@ -15,12 +16,15 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.PreferenceHelper
+import cz.skala.trezorwallet.data.entity.BitcoinURI
 import cz.skala.trezorwallet.data.entity.FeeLevel
+import cz.skala.trezorwallet.exception.InvalidBitcoinURIException
 import kotlinx.android.synthetic.main.fragment_send.*
 import java.util.*
 
@@ -32,13 +36,19 @@ class SendFragment : Fragment(), SupportFragmentInjector {
     companion object {
         const val ARG_ACCOUNT_ID = "account_id"
 
+        private const val TAG = "SendFragment"
+
+        private const val REQUEST_SCAN_QR = 20
         private const val REQUEST_SIGN = 30
+
         private const val FEE_SPINNER_POSITION_CUSTOM = 4
     }
 
     override val injector = KodeinInjector()
     private val prefs: PreferenceHelper by injector.instance()
     private val viewModel: SendViewModel by injector.instance()
+
+    private var textWatcherEnabled = true
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<SendViewModel>() with provider {
@@ -58,7 +68,11 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             if (it != null && !edtAmountBtc.isFocused) {
                 if (it > 0) {
                     val value = java.lang.String.format(Locale.ENGLISH, "%.8f", it)
-                    edtAmountBtc.setText(value)
+                    if (value != edtAmountBtc.text.toString()) {
+                        textWatcherEnabled = false
+                        edtAmountBtc.setText(value)
+                        textWatcherEnabled = true
+                    }
                 } else {
                     edtAmountBtc.text = null
                 }
@@ -69,7 +83,11 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             if (it != null && !edtAmountUsd.isFocused) {
                 if (it > 0) {
                     val value = java.lang.String.format(Locale.ENGLISH, "%.2f", it)
-                    edtAmountUsd.setText(value)
+                    if (value != edtAmountUsd.text.toString()) {
+                        textWatcherEnabled = false
+                        edtAmountUsd.setText(value)
+                        textWatcherEnabled = true
+                    }
                 } else {
                     edtAmountUsd.text = null
                 }
@@ -91,6 +109,10 @@ class SendFragment : Fragment(), SupportFragmentInjector {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        btnQrCode.setOnClickListener {
+            startQrScanner()
+        }
+
         btnSend.setOnClickListener {
             handleSendClick()
         }
@@ -100,8 +122,10 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val value = s.toString().toDoubleOrNull() ?: 0.0
-                viewModel.setAmountBtc(value)
+                if (textWatcherEnabled) {
+                    val value = s.toString().toDoubleOrNull() ?: 0.0
+                    viewModel.setAmountBtc(value)
+                }
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -113,8 +137,10 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val value = s.toString().toDoubleOrNull() ?: 0.0
-                viewModel.setAmountUsd(value)
+                if (textWatcherEnabled) {
+                    val value = s.toString().toDoubleOrNull() ?: 0.0
+                    viewModel.setAmountUsd(value)
+                }
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -128,9 +154,14 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
+            REQUEST_SCAN_QR -> if (resultCode == Activity.RESULT_OK) {
+                val scanResult = data!!.getStringExtra("SCAN_RESULT")
+                Log.d(TAG, "scanResult: $scanResult")
+                handleQrScanResult(scanResult)
+            }
             REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
                 val signedIx = data!!.getStringExtra(TrezorActivity.EXTRA_SIGNED_TX)
-                Log.d("SendFragment", "signedTx: $signedIx")
+                Log.d(TAG, "signedTx: $signedIx")
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
@@ -218,5 +249,39 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         }
 
         viewModel.composeTransaction(account, address, amount, fee)
+    }
+
+    private fun startQrScanner() {
+        val intent = Intent("com.google.zxing.client.android.SCAN")
+        intent.putExtra("SCAN_MODE", "QR_CODE_MODE")
+
+        if (intent.resolveActivity(context!!.packageManager) != null) {
+            startActivityForResult(intent, REQUEST_SCAN_QR)
+        } else {
+            val marketUri = Uri.parse("market://details?id=com.google.zxing.client.android")
+            val marketIntent = Intent(Intent.ACTION_VIEW, marketUri)
+            startActivity(marketIntent)
+        }
+    }
+
+    private fun handleQrScanResult(scanResult: String) {
+        try {
+            val uri = BitcoinURI.parse(scanResult)
+            val address = uri.address
+            edtAddress.setText(address)
+
+            if (uri.amount > 0) {
+                viewModel.setAmountBtc(uri.amount)
+            }
+        } catch (e: InvalidBitcoinURIException) {
+            e.printStackTrace()
+
+            if (viewModel.validateAddress(scanResult)) {
+                // Not a Bitcoin URI, but just a plain text address
+                edtAddress.setText(scanResult)
+            } else {
+                Toast.makeText(context, "Invalid address", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

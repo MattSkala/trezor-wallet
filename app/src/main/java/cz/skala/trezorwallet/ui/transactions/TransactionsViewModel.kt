@@ -66,27 +66,31 @@ class TransactionsViewModel(
     fun fetchTransactions() {
         launch(UI) {
             refreshing.value = true
-            bg {
-                val account = database.accountDao().getById(accountId)
-                val (txs, externalChainAddresses, changeAddresses) =
-                        fetcher.fetchTransactionsForAccount(account)
+            try {
+                bg {
+                    val account = database.accountDao().getById(accountId)
+                    val (txs, externalChainAddresses, changeAddresses) =
+                            fetcher.fetchTransactionsForAccount(account)
 
-                val myAddresses = externalChainAddresses + changeAddresses
-                val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)
+                    val myAddresses = externalChainAddresses + changeAddresses
+                    val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)
 
-                saveTransactions(transactions)
+                    saveTransactions(transactions)
 
-                val externalChainAddressEntities = createAddressEntities(externalChainAddresses,
-                        false)
-                calculateAddressTotalReceived(txs, externalChainAddressEntities)
-                saveAddresses(externalChainAddressEntities)
-                saveAddresses(createAddressEntities(changeAddresses, true))
+                    val externalChainAddressEntities = createAddressEntities(externalChainAddresses,
+                            false)
+                    calculateAddressTotalReceived(txs, externalChainAddressEntities)
+                    saveAddresses(externalChainAddressEntities)
+                    saveAddresses(createAddressEntities(changeAddresses, true))
 
-                val balance = fetcher.calculateBalance(txs, myAddresses)
-                database.accountDao().updateBalance(accountId, balance)
+                    val balance = fetcher.calculateBalance(txs, myAddresses)
+                    database.accountDao().updateBalance(accountId, balance)
 
-                transactions
-            }.await()
+                    transactions
+                }.await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             refreshing.value = false
         }
     }
@@ -105,10 +109,14 @@ class TransactionsViewModel(
 
     private fun fetchRate() {
         launch(UI) {
-            prefs.rate = bg {
-                coinMarketCapClient.fetchRate(prefs.currencyCode)
-            }.await().toFloat()
-            updateItems()
+            try {
+                prefs.rate = bg {
+                    coinMarketCapClient.fetchRate(prefs.currencyCode)
+                }.await().toFloat()
+                updateItems()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

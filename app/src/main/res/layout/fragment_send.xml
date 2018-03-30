@@ -18,11 +18,28 @@
             style="@style/InputLabel"
             android:text="Address"/>
 
-        <EditText
-            android:id="@+id/edtAddress"
-            style="@style/InputEditText"
-            android:hint="Double check the address"
-            android:inputType="text"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/edtAddress"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                style="@style/InputEditText"
+                android:hint="Double check the address"
+                android:inputType="text"/>
+
+            <ImageButton
+                android:id="@+id/btnQrCode"
+                android:layout_marginEnd="-16dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_gravity="end|center_vertical"
+                android:src="@drawable/ic_qrcode"
+                android:background="?selectableItemBackgroundBorderless"/>
+        </LinearLayout>
 
         <!--TextView
             android:id="@+id/txtCommentLabel"
