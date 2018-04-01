@@ -2,6 +2,7 @@ package cz.skala.trezorwallet.insight
 
 import cz.skala.trezorwallet.insight.response.AddrsTxsResponse
 import cz.skala.trezorwallet.insight.response.SendTxResponse
+import cz.skala.trezorwallet.insight.response.Tx
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -29,4 +30,10 @@ interface InsightApiService {
     @FormUrlEncoded
     @POST("tx/send")
     fun sendTx(@Field("rawtx") rawtx: String): Call<SendTxResponse>
+
+    /**
+     * Gets a single transaction details.
+     */
+    @GET("tx/{txid}")
+    fun getTx(@Path("txid") txid: String): Call<Tx>
 }

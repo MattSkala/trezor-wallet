@@ -212,12 +212,13 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         return items
     }
 
-    private fun showTransactions(accountId: String) {
+    fun showTransactions(accountId: String) {
         val f = TransactionsFragment()
         val args = Bundle()
         args.putString(TransactionsFragment.ARG_ACCOUNT_ID, accountId)
         f.arguments = args
         replaceFragment(f)
+        navigation.selectedItemId = 0
     }
 
     private fun showAddresses(accountId: String) {

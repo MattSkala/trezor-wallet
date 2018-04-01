@@ -1,6 +1,7 @@
 package cz.skala.trezorwallet.ui.send
 
 import android.app.Activity
+import android.app.ProgressDialog
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
@@ -26,6 +27,7 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.BitcoinURI
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.exception.InvalidBitcoinURIException
+import cz.skala.trezorwallet.ui.MainActivity
 import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.android.synthetic.main.fragment_send.*
 import java.util.*
@@ -51,10 +53,11 @@ class SendFragment : Fragment(), SupportFragmentInjector {
     private val viewModel: SendViewModel by injector.instance()
 
     private var textWatcherEnabled = true
+    private var progressDialog: ProgressDialog? = null
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<SendViewModel>() with provider {
-            val factory = SendViewModel.Factory(instance(), instance(), instance(), instance(), instance())
+            val factory = SendViewModel.Factory(instance(), instance(), instance(), instance(), instance(), instance())
             ViewModelProviders.of(this@SendFragment, factory)[SendViewModel::class.java]
         }
     }
@@ -103,17 +106,25 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             }
         })
 
+        viewModel.sending.observe(this, Observer {
+            if (it == true) {
+                progressDialog = ProgressDialog.show(context, "Sending", "Please wait")
+            } else {
+                progressDialog?.dismiss()
+            }
+        })
+
         viewModel.onTxSent.observe(this, Observer {
             if (it != null) {
-                if (it) {
-                    Toast.makeText(context, "Transaction has been sent", Toast.LENGTH_LONG).show()
-                    edtAddress.text = null
-                    edtAmountBtc.text = null
-                    edtAmountUsd.text = null
-                    // TODO: show transaction detail
-                } else {
-                    Toast.makeText(context!!, "Sending transaction failed", Toast.LENGTH_LONG).show()
-                }
+                Toast.makeText(context, "Transaction has been sent", Toast.LENGTH_LONG).show()
+                edtAddress.text = null
+                edtAmountBtc.text = null
+                edtAmountUsd.text = null
+
+                val accountId = arguments!!.getString(ARG_ACCOUNT_ID)
+                (activity as MainActivity).showTransactions(accountId)
+            } else {
+                Toast.makeText(context!!, "Sending transaction failed", Toast.LENGTH_LONG).show()
             }
         })
 

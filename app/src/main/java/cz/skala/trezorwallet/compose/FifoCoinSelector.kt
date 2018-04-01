@@ -4,7 +4,6 @@ import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.compose.FeeEstimator.Companion.estimateFee
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
-import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 
 class FifoCoinSelector : CoinSelector {
     /**
@@ -28,7 +27,7 @@ class FifoCoinSelector : CoinSelector {
             }
 
             selectedUtxo += utxo
-            inputsValue += (utxo.value * BTC_TO_SATOSHI).toLong()
+            inputsValue += utxo.value
             val outputsCount = if (needsChangeOutput(selectedUtxo, outputs, feeRate))
                 outputs.size + 1 else outputs.size
             fee = estimateFee(selectedUtxo.size, outputsCount, feeRate)

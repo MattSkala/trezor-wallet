@@ -11,6 +11,7 @@ import cz.skala.trezorwallet.compose.FifoCoinSelector
 import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
+import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.InsightApiService
@@ -72,6 +73,10 @@ class TrezorApplication : Application(), KodeinAware {
 
         bind<TransactionComposer>() with singleton {
             TransactionComposer(instance(), instance())
+        }
+
+        bind<TransactionRepository>() with singleton {
+            TransactionRepository(instance(), instance())
         }
     }
 

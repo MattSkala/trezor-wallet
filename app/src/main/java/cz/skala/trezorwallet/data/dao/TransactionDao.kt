@@ -43,15 +43,20 @@ abstract class TransactionDao {
     abstract fun insert(output: TransactionOutput)
 
     @android.arch.persistence.room.Transaction
+    open fun insert(transaction: TransactionWithInOut) {
+        insert(transaction.tx)
+        transaction.vin.forEach {
+            insert(it)
+        }
+        transaction.vout.forEach {
+            insert(it)
+        }
+    }
+
+    @android.arch.persistence.room.Transaction
     open fun insertTransactions(transactions: List<TransactionWithInOut>) {
         transactions.forEach {
-            insert(it.tx)
-            it.vin.forEach {
-                insert(it)
-            }
-            it.vout.forEach {
-                insert(it)
-            }
+            insert(it)
         }
     }
 

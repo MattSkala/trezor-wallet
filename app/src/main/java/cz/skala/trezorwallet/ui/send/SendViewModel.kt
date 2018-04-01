@@ -3,24 +3,22 @@ package cz.skala.trezorwallet.ui.send
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
-import android.util.Log
 import com.satoshilabs.trezor.intents.ui.data.SignTxRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
+import cz.skala.trezorwallet.compose.CoinSelector
 import cz.skala.trezorwallet.compose.FeeEstimator
 import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.FeeLevel
+import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 import cz.skala.trezorwallet.insight.InsightApiService
-import cz.skala.trezorwallet.insight.response.SendTxResponse
 import cz.skala.trezorwallet.ui.SingleLiveEvent
+import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 /**
  * A ViewModel for SendFragment.
@@ -30,7 +28,8 @@ class SendViewModel(
         val prefs: PreferenceHelper,
         val feeEstimator: FeeEstimator,
         val insightApi: InsightApiService,
-        val composer: TransactionComposer
+        val composer: TransactionComposer,
+        val transactionRepository: TransactionRepository
 ) : ViewModel() {
     companion object {
         private const val TAG = "SendViewModel"
@@ -42,8 +41,9 @@ class SendViewModel(
     val amountUsd = MutableLiveData<Double>()
     val trezorRequest = SingleLiveEvent<TrezorRequest>()
     val recommendedFees = MutableLiveData<Map<FeeLevel, Int>>()
-    val onTxSent = SingleLiveEvent<Boolean>()
+    val onTxSent = SingleLiveEvent<String>()
     val onInsufficientFunds = SingleLiveEvent<Nothing>()
+    val sending = MutableLiveData<Boolean>()
 
     fun start() {
         if (!initialized) {
@@ -76,30 +76,35 @@ class SendViewModel(
     }
 
     fun sendTransaction(rawtx: String) {
-        insightApi.sendTx(rawtx).enqueue(object : Callback<SendTxResponse> {
-            override fun onResponse(call: Call<SendTxResponse>?, response: Response<SendTxResponse>?) {
-                if (response?.isSuccessful == true) {
-                    val res = response.body()
-                    val txid = res?.txid
-                    Log.d(TAG, "sendTx: $txid")
+        launch(UI) {
+            sending.value = true
+            try {
+                val txid = sendTx(rawtx)
 
-                    amountBtc.value = 0.0
-                    amountUsd.value = 0.0
+                amountBtc.value = 0.0
+                amountUsd.value = 0.0
 
-                    // TODO: clear form
-                    // TODO: save transaction
+                sending.value = false
+                onTxSent.value = txid
+            } catch (e: Exception) {
+                e.printStackTrace()
+                sending.value = false
+                onTxSent.value = null
+            }
+        }
+    }
 
-                    onTxSent.value = true
-                } else {
-                    onTxSent.value = false
-                }
+    private suspend fun sendTx(rawtx: String): String {
+        return bg {
+            val response = insightApi.sendTx(rawtx).execute()
+            val body = response.body()
+
+            if (!response.isSuccessful || body == null) {
+                throw Exception("Sending transaction failed")
             }
 
-            override fun onFailure(call: Call<SendTxResponse>?, t: Throwable?) {
-                t?.printStackTrace()
-                onTxSent.value = false
-            }
-        })
+            body.txid
+        }.await()
     }
 
     fun setAmountBtc(value: Double) {
@@ -152,20 +157,19 @@ class SendViewModel(
     }
 
     fun validateAmount(amount: Double): Boolean {
-        // TODO
-        return true
+        return btcToSat(amount) >= CoinSelector.MINIMUM_OUTPUT_VALUE
     }
 
     fun validateFee(fee: Int): Boolean {
-        // TODO
-        return true
+        return fee >= FeeEstimator.MINIMUM_FEE
     }
 
     class Factory(val database: AppDatabase, val prefs: PreferenceHelper,
                   val feeEstimator: FeeEstimator, val insightApi: InsightApiService,
-                  val composer: TransactionComposer) : ViewModelProvider.NewInstanceFactory() {
+                  val composer: TransactionComposer, val transactionRepository: TransactionRepository) :
+            ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return SendViewModel(database, prefs, feeEstimator, insightApi, composer) as T
+            return SendViewModel(database, prefs, feeEstimator, insightApi, composer, transactionRepository) as T
         }
     }
 }

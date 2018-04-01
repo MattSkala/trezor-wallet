@@ -94,11 +94,14 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
             val balance = summary.received - summary.sent
             itemBalance.setValuePrimary(formatBtcValue(balance))
-            itemBalance.setValueSecondary(formatPrice((balance.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
+            itemBalance.setValueSecondary(
+                    formatPrice((balance.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
             itemReceived.setValuePrimary(formatBtcValue(summary.received))
-            itemReceived.setValueSecondary(formatPrice(summary.received * rate, currencyCode))
+            itemReceived.setValueSecondary(formatPrice(
+                    (summary.received.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
             itemSent.setValuePrimary(formatBtcValue(summary.sent))
-            itemSent.setValueSecondary(formatPrice((summary.sent.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
+            itemSent.setValueSecondary(
+                    formatPrice((summary.sent.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
             itemRate.setValuePrimary(formatPrice(rate, currencyCode))
             itemRate.setValueSecondary(formatBtcValue(1.0))
         }

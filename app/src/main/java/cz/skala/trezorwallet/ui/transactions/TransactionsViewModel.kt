@@ -7,14 +7,13 @@ import android.arch.lifecycle.ViewModelProvider
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
-import cz.skala.trezorwallet.data.entity.*
+import cz.skala.trezorwallet.data.entity.Transaction
+import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.data.item.AccountSummaryItem
 import cz.skala.trezorwallet.data.item.DateItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.TransactionItem
-import cz.skala.trezorwallet.discovery.TransactionFetcher
-import cz.skala.trezorwallet.insight.response.Tx
-import cz.skala.trezorwallet.ui.btcToSat
+import cz.skala.trezorwallet.data.repository.TransactionRepository
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
@@ -24,9 +23,9 @@ import org.jetbrains.anko.coroutines.experimental.bg
  */
 class TransactionsViewModel(
         private val database: AppDatabase,
-        private val fetcher: TransactionFetcher,
         private val coinMarketCapClient: CoinMarketCapClient,
-        private val prefs: PreferenceHelper
+        private val prefs: PreferenceHelper,
+        private val transactionRepository: TransactionRepository
 ) : ViewModel() {
     val items = MutableLiveData<List<Item>>()
     val refreshing = MutableLiveData<Boolean>()
@@ -38,7 +37,7 @@ class TransactionsViewModel(
     private var summary = AccountSummary(0L, 0L)
 
     private val transactionsLiveData by lazy {
-        database.transactionDao().getByAccountLiveDataWithInOut(accountId)
+        transactionRepository.getByAccount(accountId)
     }
 
     private val transactionsObserver = Observer<List<TransactionWithInOut>> { txs ->
@@ -69,25 +68,7 @@ class TransactionsViewModel(
             refreshing.value = true
             try {
                 bg {
-                    val account = database.accountDao().getById(accountId)
-                    val (txs, externalChainAddresses, changeAddresses) =
-                            fetcher.fetchTransactionsForAccount(account)
-
-                    val myAddresses = externalChainAddresses + changeAddresses
-                    val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)
-
-                    saveTransactions(transactions)
-
-                    val externalChainAddressEntities = createAddressEntities(externalChainAddresses,
-                            false)
-                    calculateAddressTotalReceived(txs, externalChainAddressEntities)
-                    saveAddresses(externalChainAddressEntities)
-                    saveAddresses(createAddressEntities(changeAddresses, true))
-
-                    val balance = fetcher.calculateBalance(txs, myAddresses)
-                    database.accountDao().updateBalance(accountId, balance)
-
-                    transactions
+                    transactionRepository.refresh(accountId)
                 }.await()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -147,126 +128,6 @@ class TransactionsViewModel(
         this.empty.value = transactions.isEmpty()
     }
 
-    private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>,
-                                          changeAddresses: List<String>): List<TransactionWithInOut> {
-        return txs.map {
-            createTransactionEntity(it, accountId, addresses, changeAddresses)
-        }
-    }
-
-    private fun createTransactionEntity(tx: Tx, accountId: String, myAddresses: List<String>,
-                                        changeAddresses: List<String>): TransactionWithInOut {
-        val isSent = tx.vin.all {
-            myAddresses.contains(it.addr)
-        }
-
-        val isReceived = tx.vout.any { out ->
-            var myAddressInOutput = false
-            out.scriptPubKey.addresses?.forEach { addr ->
-                if (myAddresses.contains(addr)) {
-                    myAddressInOutput = true
-                }
-            }
-            myAddressInOutput
-        }
-
-        val isSelf = isSent && tx.vout.all { out ->
-            var myAddressInOutput = false
-            out.scriptPubKey.addresses?.forEach { addr ->
-                if (myAddresses.contains(addr)) {
-                    myAddressInOutput = true
-                }
-            }
-            myAddressInOutput
-        }
-
-        val type = when {
-            isSelf -> Transaction.Type.SELF
-            isSent -> Transaction.Type.SENT
-            else -> Transaction.Type.RECV
-        }
-
-        var value = 0L
-        tx.vout.forEach { txOut ->
-            txOut.scriptPubKey.addresses?.forEach { addr ->
-                if (isSent) {
-                    if (!myAddresses.contains(addr)) {
-                        value += btcToSat(txOut.value.toDouble())
-                    }
-                } else if (isReceived) {
-                    if (myAddresses.contains(addr)) {
-                        value += btcToSat(txOut.value.toDouble())
-                    }
-                }
-            }
-        }
-
-        val accountTxid = accountId + "_" + tx.txid
-
-        val transaction = Transaction(
-                accountTxid,
-                tx.txid,
-                accountId,
-                tx.version,
-                tx.time,
-                tx.size,
-                tx.blockheight,
-                tx.blockhash,
-                tx.blocktime,
-                tx.confirmations,
-                type,
-                value,
-                btcToSat(tx.fees),
-                tx.locktime
-        )
-
-        val vin = tx.vin.map {
-            TransactionInput(accountTxid, accountId, it.n, it.txid, it.vout, it.addr, it.valueSat,
-                    it.scriptSig.hex, it.sequence)
-        }
-
-        val vout = tx.vout.map {
-            val myAddress = it.scriptPubKey.addresses?.find { myAddresses.contains(it) }
-            val isMine = myAddress != null
-            val address = myAddress ?: it.scriptPubKey.addresses?.get(0)
-            val isChange = changeAddresses.contains(address)
-            TransactionOutput(accountTxid, accountId, tx.txid, it.n, address,
-                    btcToSat(it.value.toDouble()), it.spentTxId, isMine, isChange, it.scriptPubKey.hex)
-        }
-
-        return TransactionWithInOut(transaction, vin, vout)
-    }
-
-    private fun saveTransactions(transactions: List<TransactionWithInOut>) {
-        database.transactionDao().insertTransactions(transactions)
-    }
-
-    private fun createAddressEntities(addrs: List<String>, change: Boolean): List<Address> {
-        return addrs.mapIndexed { index, addr ->
-            Address(
-                    addr,
-                    accountId,
-                    change,
-                    index,
-                    null,
-                    0.0
-            )
-        }
-    }
-
-    private fun calculateAddressTotalReceived(txs: Set<Tx>, addresses: List<Address>) {
-        txs.forEach { tx ->
-            tx.vout.forEach { txOut ->
-                txOut.scriptPubKey.addresses?.forEach { addr ->
-                    val address = addresses.find { it.address == addr }
-                    if (address != null) {
-                        address.totalReceived += txOut.value.toDouble()
-                    }
-                }
-            }
-        }
-    }
-
     private fun createAccountSummary(transactions: List<TransactionWithInOut>): AccountSummary {
         var received = 0L
         var sent = 0L
@@ -280,15 +141,11 @@ class TransactionsViewModel(
         return AccountSummary(received, sent)
     }
 
-    private fun saveAddresses(addresses: List<Address>) {
-        database.addressDao().insert(addresses)
-    }
-
-    class Factory(val database: AppDatabase, val fetcher: TransactionFetcher,
-                  val coinMarketCapClient: CoinMarketCapClient, val prefs: PreferenceHelper
+    class Factory(val database: AppDatabase, val coinMarketCapClient: CoinMarketCapClient,
+                  val prefs: PreferenceHelper, val transactionRepository: TransactionRepository
     ) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return TransactionsViewModel(database, fetcher, coinMarketCapClient, prefs) as T
+            return TransactionsViewModel(database, coinMarketCapClient, prefs, transactionRepository) as T
         }
     }
 }

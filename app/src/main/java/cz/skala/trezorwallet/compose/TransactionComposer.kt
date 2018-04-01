@@ -10,7 +10,6 @@ import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.exception.InsufficientFundsException
-import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 
 class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelector) {
     /**
@@ -112,7 +111,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
         }
 
         var inputsValue = 0L
-        inputs.forEach { inputsValue += (it.value * BTC_TO_SATOSHI).toLong() }
+        inputs.forEach { inputsValue += it.value }
 
         var outputsValue = 0L
         outputs.forEach { outputsValue += it.amount }
