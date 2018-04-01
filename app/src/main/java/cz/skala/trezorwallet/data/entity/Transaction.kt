@@ -20,8 +20,8 @@ class Transaction(
         val blocktime: Long?,
         val confirmations: Int,
         val type: Type,
-        val value: Double,
-        val fee: Double,
+        val value: Long,
+        val fee: Long,
         val locktime: Int
 ) {
     enum class Type {

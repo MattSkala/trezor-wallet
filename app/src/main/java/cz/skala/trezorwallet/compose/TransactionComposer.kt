@@ -18,10 +18,11 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
      *
      * @param [accountId] An account to spend UTXOs from.
      * @param [address] Target Bitcoin address encoded as Base58Check.
+     * @param [amount] Amount in satoshis to be sent to the target address.
      * @param [feeRate] Mining fee in satoshis per byte.
      */
     @Throws(InsufficientFundsException::class)
-    fun composeTransaction(accountId: String, address: String, amount: Double, feeRate: Int):
+    fun composeTransaction(accountId: String, address: String, amount: Long, feeRate: Int):
             Pair<TrezorType.TransactionType, Map<String, TrezorType.TransactionType>> {
         val account = database.accountDao().getById(accountId)
 
@@ -30,7 +31,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
         val outputs = mutableListOf<TrezorType.TxOutputType>()
         outputs += TrezorType.TxOutputType.newBuilder()
                 .setAddress(address)
-                .setAmount((amount * BTC_TO_SATOSHI).toLong())
+                .setAmount(amount)
                 .setScriptType(TrezorType.OutputScriptType.PAYTOADDRESS)
                 .build()
 
@@ -52,7 +53,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
 
         utxo.forEach {
             val tx = database.transactionDao().getByTxid(it.txid)
-            val txType = toTrezorTransactionType(tx, account)
+            val txType = toTrezorTransactionType(tx)
             inputTransactions[it.txid] = txType
         }
 
@@ -89,7 +90,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
                 builder.scriptType = TrezorType.InputScriptType.SPENDADDRESS
             } else {
                 builder.scriptType = TrezorType.InputScriptType.SPENDP2SHWITNESS
-                builder.amount = (it.value * BTC_TO_SATOSHI).toLong()
+                builder.amount = it.value
             }
 
             builder.build()
@@ -132,7 +133,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
     /**
      * Converts an existing transaction from db into TransactionType for usage in TREZOR request.
      */
-    private fun toTrezorTransactionType(tx: TransactionWithInOut, account: Account): TrezorType.TransactionType {
+    private fun toTrezorTransactionType(tx: TransactionWithInOut): TrezorType.TransactionType {
         val trezorInputs = tx.vin.map {
             val prevHash = ByteString.copyFrom(it.txid.hexToBytes())
             val scriptSig = ByteString.copyFrom(it.scriptSig.hexToBytes())
@@ -148,7 +149,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
         val trezorOutputs = tx.vout.map {
             val scriptPubKey = ByteString.copyFrom(it.scriptPubKey.hexToBytes())
             TrezorType.TxOutputBinType.newBuilder()
-                    .setAmount((it.value * BTC_TO_SATOSHI).toLong())
+                    .setAmount(it.value)
                     .setScriptPubkey(scriptPubKey)
                     .build()
         }

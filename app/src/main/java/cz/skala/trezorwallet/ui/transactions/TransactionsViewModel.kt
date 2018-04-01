@@ -14,6 +14,7 @@ import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.TransactionItem
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.response.Tx
+import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
@@ -34,7 +35,7 @@ class TransactionsViewModel(
     private var initialized = false
     private lateinit var accountId: String
     private var transactions = listOf<TransactionWithInOut>()
-    private var summary = AccountSummary(0.0, 0.0)
+    private var summary = AccountSummary(0L, 0L)
 
     private val transactionsLiveData by lazy {
         database.transactionDao().getByAccountLiveDataWithInOut(accountId)
@@ -185,16 +186,16 @@ class TransactionsViewModel(
             else -> Transaction.Type.RECV
         }
 
-        var value = 0.0
+        var value = 0L
         tx.vout.forEach { txOut ->
             txOut.scriptPubKey.addresses?.forEach { addr ->
                 if (isSent) {
                     if (!myAddresses.contains(addr)) {
-                        value += txOut.value.toDouble()
+                        value += btcToSat(txOut.value.toDouble())
                     }
                 } else if (isReceived) {
                     if (myAddresses.contains(addr)) {
-                        value += txOut.value.toDouble()
+                        value += btcToSat(txOut.value.toDouble())
                     }
                 }
             }
@@ -215,12 +216,12 @@ class TransactionsViewModel(
                 tx.confirmations,
                 type,
                 value,
-                tx.fees,
+                btcToSat(tx.fees),
                 tx.locktime
         )
 
         val vin = tx.vin.map {
-            TransactionInput(accountTxid, accountId, it.n, it.txid, it.vout, it.addr, it.value,
+            TransactionInput(accountTxid, accountId, it.n, it.txid, it.vout, it.addr, it.valueSat,
                     it.scriptSig.hex, it.sequence)
         }
 
@@ -230,7 +231,7 @@ class TransactionsViewModel(
             val address = myAddress ?: it.scriptPubKey.addresses?.get(0)
             val isChange = changeAddresses.contains(address)
             TransactionOutput(accountTxid, accountId, tx.txid, it.n, address,
-                    it.value.toDouble(), it.spentTxId, isMine, isChange, it.scriptPubKey.hex)
+                    btcToSat(it.value.toDouble()), it.spentTxId, isMine, isChange, it.scriptPubKey.hex)
         }
 
         return TransactionWithInOut(transaction, vin, vout)
@@ -267,8 +268,8 @@ class TransactionsViewModel(
     }
 
     private fun createAccountSummary(transactions: List<TransactionWithInOut>): AccountSummary {
-        var received = 0.0
-        var sent = 0.0
+        var received = 0L
+        var sent = 0L
         transactions.forEach {
             when (it.tx.type) {
                 Transaction.Type.RECV -> received += it.tx.value

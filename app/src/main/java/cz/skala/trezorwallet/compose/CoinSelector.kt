@@ -4,7 +4,6 @@ import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.compose.FeeEstimator.Companion.estimateFee
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
-import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 
 interface CoinSelector {
     companion object {
@@ -30,7 +29,7 @@ interface CoinSelector {
         val fee = estimateFee(inputs.size, outputs.size, feeRate)
 
         var inputsValue = 0L
-        inputs.forEach { inputsValue += (it.value * BTC_TO_SATOSHI).toLong() }
+        inputs.forEach { inputsValue += it.value }
 
         var outputsValue = 0L
         outputs.forEach { outputsValue += it.amount }

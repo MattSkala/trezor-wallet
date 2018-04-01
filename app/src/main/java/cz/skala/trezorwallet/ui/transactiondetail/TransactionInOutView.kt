@@ -17,7 +17,7 @@ class TransactionInOutView(context: Context, attrs: AttributeSet? = null) : Fram
         inflater.inflate(R.layout.item_transaction_input, this, true)
     }
 
-    fun setValue(value: Double) {
+    fun setValue(value: Long) {
         txtValue.text = formatBtcValue(value)
     }
 

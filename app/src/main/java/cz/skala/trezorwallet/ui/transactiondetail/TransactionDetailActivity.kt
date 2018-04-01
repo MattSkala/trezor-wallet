@@ -15,12 +15,10 @@ import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.entity.TransactionInput
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
-import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 import cz.skala.trezorwallet.ui.formatBtcValue
 import kotlinx.android.synthetic.main.activity_transaction_detail.*
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.roundToInt
 
 
 /**
@@ -104,7 +102,7 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
         }
 
         txtFee.text = formatBtcValue(transaction.tx.fee)
-        val feePerByte = (transaction.tx.fee * BTC_TO_SATOSHI /transaction.tx.size).roundToInt()
+        val feePerByte = transaction.tx.fee / transaction.tx.size
         txtFeePerByte.text = getString(R.string.sat_per_byte, feePerByte.toString())
     }
 

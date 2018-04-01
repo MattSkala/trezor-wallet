@@ -12,6 +12,7 @@ import cz.skala.trezorwallet.data.item.AccountSummaryItem
 import cz.skala.trezorwallet.data.item.DateItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.TransactionItem
+import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 import cz.skala.trezorwallet.ui.formatBtcValue
 import cz.skala.trezorwallet.ui.formatPrice
 import kotlinx.android.synthetic.main.item_account_summary.view.*
@@ -93,11 +94,11 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
             val balance = summary.received - summary.sent
             itemBalance.setValuePrimary(formatBtcValue(balance))
-            itemBalance.setValueSecondary(formatPrice(balance * rate, currencyCode))
+            itemBalance.setValueSecondary(formatPrice((balance.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
             itemReceived.setValuePrimary(formatBtcValue(summary.received))
             itemReceived.setValueSecondary(formatPrice(summary.received * rate, currencyCode))
             itemSent.setValuePrimary(formatBtcValue(summary.sent))
-            itemSent.setValueSecondary(formatPrice(summary.sent * rate, currencyCode))
+            itemSent.setValueSecondary(formatPrice((summary.sent.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))
             itemRate.setValuePrimary(formatPrice(rate, currencyCode))
             itemRate.setValueSecondary(formatBtcValue(1.0))
         }
@@ -147,7 +148,7 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 else -> R.color.colorRed
             }
             txtValueBtc.setTextColor(resources.getColor(colorRes))
-            txtValueUsd.text = formatPrice(value * rate, currencyCode)
+            txtValueUsd.text = formatPrice((value.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode)
             txtValueUsd.visibility = View.GONE
         }
     }

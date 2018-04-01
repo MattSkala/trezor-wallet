@@ -12,7 +12,7 @@ class TransactionOutput(
         val txid: String,
         val n: Int,
         val addr: String?,
-        val value: Double,
+        val value: Long,
         val spentTxId: String?,
         val isMine: Boolean = false,
         val isChange: Boolean = false,

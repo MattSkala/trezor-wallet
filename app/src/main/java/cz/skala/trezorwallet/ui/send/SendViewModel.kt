@@ -58,9 +58,10 @@ class SendViewModel(
      *
      * @param [accountId] An account to spend UTXOs from.
      * @param [address] Target Bitcoin address encoded as Base58Check.
+     * @param [amount] Amount in satoshis to be sent to the target address.
      * @param [fee] Mining fee in satoshis per byte.
      */
-    fun composeTransaction(accountId: String, address: String, amount: Double, fee: Int) {
+    fun composeTransaction(accountId: String, address: String, amount: Long, fee: Int) {
         launch(UI) {
             try {
                 val (tx, inputTransactions) = bg {

@@ -26,6 +26,7 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.BitcoinURI
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.exception.InvalidBitcoinURIException
+import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.android.synthetic.main.fragment_send.*
 import java.util.*
 
@@ -273,7 +274,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             return
         }
 
-        viewModel.composeTransaction(account, address, amount, fee)
+        viewModel.composeTransaction(account, address, btcToSat(amount), fee)
     }
 
     private fun startQrScanner() {

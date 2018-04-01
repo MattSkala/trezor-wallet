@@ -1,4 +1,4 @@
 package cz.skala.trezorwallet.ui.transactions
 
 
-class AccountSummary(val received: Double, val sent: Double)
+class AccountSummary(val received: Long, val sent: Long)
