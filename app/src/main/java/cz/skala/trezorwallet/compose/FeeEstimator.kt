@@ -9,6 +9,26 @@ import org.jetbrains.anko.coroutines.experimental.bg
 class FeeEstimator(val insightApi: InsightApiService) {
     companion object {
         private const val TAG = "FeeEstimator"
+
+        /**
+         * The minimum miner fee per byte for block inclusion.
+         */
+        const val MINIMUM_FEE: Int = 1
+
+        /**
+         * Estimates a total fee based on the number of inputs, outputs and desired fee per byte.
+         */
+        fun estimateFee(inputs: Int, outputs: Int, feeRate: Int): Int {
+            return estimateTransactionSize(inputs, outputs) * feeRate
+        }
+
+        /**
+         * Estimates a transaction size in bytes.
+         */
+        private fun estimateTransactionSize(inputs: Int, outputs: Int): Int {
+            return inputs * 180 + outputs * 34 + 10
+        }
+
     }
 
     /**
@@ -40,7 +60,7 @@ class FeeEstimator(val insightApi: InsightApiService) {
                     var satPerB = (btcPerKb * BTC_TO_SATOSHI / 1000).toInt()
 
                     // Set minimal fee as 1 sat/B
-                    satPerB = Math.max(satPerB, 1)
+                    satPerB = Math.max(satPerB, MINIMUM_FEE)
 
                     recommendedFees[it] = satPerB
                 }

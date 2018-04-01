@@ -1,30 +1,45 @@
 package cz.skala.trezorwallet.compose
 
+import android.util.Log
 import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.hexToBytes
+import com.satoshilabs.trezor.intents.toHex
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.exception.InsufficientFundsException
 import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 
-class TransactionComposer(val database: AppDatabase) {
+class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelector) {
     /**
      * Composes a new transaction.
      *
      * @param [accountId] An account to spend UTXOs from.
      * @param [address] Target Bitcoin address encoded as Base58Check.
-     * @param [fee] Mining fee in satoshis per byte.
+     * @param [feeRate] Mining fee in satoshis per byte.
      */
-    fun composeTransaction(accountId: String, address: String, amount: Double, fee: Int):
+    @Throws(InsufficientFundsException::class)
+    fun composeTransaction(accountId: String, address: String, amount: Double, feeRate: Int):
             Pair<TrezorType.TransactionType, Map<String, TrezorType.TransactionType>> {
         val account = database.accountDao().getById(accountId)
 
-        val utxo = findUtxo(account, amount)
+        val utxoSet = database.transactionDao().getUnspentOutputs(account.id)
+
+        val outputs = mutableListOf<TrezorType.TxOutputType>()
+        outputs += TrezorType.TxOutputType.newBuilder()
+                .setAddress(address)
+                .setAmount((amount * BTC_TO_SATOSHI).toLong())
+                .setScriptType(TrezorType.OutputScriptType.PAYTOADDRESS)
+                .build()
+
+        val (utxo, fee) = coinSelector.select(utxoSet, outputs, feeRate)
+
+        addChangeOutput(account, utxo, outputs, fee)
 
         val trezorInputs = createTrezorInputs(account, utxo)
-        val trezorOutputs = createTrezorOutputs(account, utxo, address, amount, fee)
+        val trezorOutputs = outputs
 
         val trezorTransaction = TrezorType.TransactionType.newBuilder()
                 .addAllInputs(trezorInputs)
@@ -41,30 +56,21 @@ class TransactionComposer(val database: AppDatabase) {
             inputTransactions[it.txid] = txType
         }
 
-        return Pair(trezorTransaction, inputTransactions)
-    }
-
-    /**
-     * Finds unspent transaction outputs with total value greater than the specified amount.
-     *
-     * @param account An account to find outputs for.
-     * @param amount Total outputs value in BTC.
-     */
-    private fun findUtxo(account: Account, amount: Double): List<TransactionOutput> {
-        val utxoSet = database.transactionDao().getUnspentOutputs(account.id)
-        val selectedUtxo = mutableListOf<TransactionOutput>()
-        var inputsValue = 0.0
-
-        for (utxo in utxoSet) {
-            if (inputsValue < amount) {
-                selectedUtxo += utxo
-                inputsValue += utxo.value
-            } else {
-                break
+        Log.d("TransactionComposer", "TREZOR Transaction")
+        Log.d("TransactionComposer", trezorTransaction.toString())
+        Log.d("TransactionComposer", "Referenced Transactions")
+        inputTransactions.forEach { key, value ->
+            Log.d("TransactionComposer", "txid: $key")
+            Log.d("TransactionComposer", value.toString())
+            value.inputsList.forEachIndexed { i, input ->
+                Log.d("TransactionComposer", "input #$i " + input.prevHash.toByteArray().toHex() + " " + input.prevIndex + " " + input.scriptSig.toByteArray().toHex() + " " + input.sequence)
+            }
+            value.binOutputsList.forEachIndexed { i, output ->
+                Log.d("TransactionComposer", "output #$i " + output.amount + " " + output.scriptPubkey.toByteArray().toHex())
             }
         }
 
-        return selectedUtxo
+        return Pair(trezorTransaction, inputTransactions)
     }
 
     private fun createTrezorInputs(account: Account, utxo: List<TransactionOutput>): List<TrezorType.TxInputType> {
@@ -90,37 +96,37 @@ class TransactionComposer(val database: AppDatabase) {
         }
     }
 
-    private fun createTrezorOutputs(account: Account, inputs: List<TransactionOutput>, address: String,
-                                    amount: Double, fee: Int): List<TrezorType.TxOutputType> {
-        val trezorOutputs = mutableListOf<TrezorType.TxOutputType>()
-
+    /**
+     * Adds a change output if the output value is greater than the minimum output value.
+     */
+    private fun addChangeOutput(account: Account, inputs: List<TransactionOutput>,
+                                outputs: MutableList<TrezorType.TxOutputType>, fee: Int) {
         // TODO: get fresh change address
         val changeAddress = database.addressDao().getByAccount(account.id, true).first()
-
-        var inputsValue = 0.0
-        inputs.forEach { inputsValue += it.value }
-        // TODO: better fee estimation
-        val feeValue = estimateFee(inputs.size, 2, fee)
-        val changeValue = inputsValue - amount - feeValue
-
-        trezorOutputs += TrezorType.TxOutputType.newBuilder()
-                .setAddress(address)
-                .setAmount((amount * BTC_TO_SATOSHI).toLong())
-                .setScriptType(TrezorType.OutputScriptType.PAYTOADDRESS)
-                .build()
 
         val changeScriptType = if (account.legacy) {
             TrezorType.OutputScriptType.PAYTOADDRESS
         } else {
             TrezorType.OutputScriptType.PAYTOP2SHWITNESS
         }
-        trezorOutputs += TrezorType.TxOutputType.newBuilder()
-                .addAllAddressN(changeAddress.getPath(account).toList())
-                .setAmount((changeValue * BTC_TO_SATOSHI).toLong())
-                .setScriptType(changeScriptType)
-                .build()
 
-        return trezorOutputs
+        var inputsValue = 0L
+        inputs.forEach { inputsValue += (it.value * BTC_TO_SATOSHI).toLong() }
+
+        var outputsValue = 0L
+        outputs.forEach { outputsValue += it.amount }
+
+        val changeValue = inputsValue - outputsValue - fee
+
+        Log.d("TransactionComposer", "inputs: $inputsValue outputs: $outputsValue fee: $fee change: $changeValue")
+
+        if (changeValue >= CoinSelector.MINIMUM_OUTPUT_VALUE) {
+            outputs += TrezorType.TxOutputType.newBuilder()
+                    .addAllAddressN(changeAddress.getPath(account).toList())
+                    .setAmount(changeValue)
+                    .setScriptType(changeScriptType)
+                    .build()
+        }
     }
 
     /**
@@ -131,20 +137,12 @@ class TransactionComposer(val database: AppDatabase) {
             val prevHash = ByteString.copyFrom(it.txid.hexToBytes())
             val scriptSig = ByteString.copyFrom(it.scriptSig.hexToBytes())
 
-            val builder = TrezorType.TxInputType.newBuilder()
+            TrezorType.TxInputType.newBuilder()
                     .setPrevHash(prevHash)
                     .setPrevIndex(it.vout)
                     .setScriptSig(scriptSig)
                     .setSequence(it.sequence.toInt())
-
-            if (account.legacy) {
-                builder.scriptType = TrezorType.InputScriptType.SPENDADDRESS
-            } else {
-                builder.scriptType = TrezorType.InputScriptType.SPENDP2SHWITNESS
-                builder.amount = (it.value * BTC_TO_SATOSHI).toLong()
-            }
-
-            builder.build()
+                    .build()
         }
 
         val trezorOutputs = tx.vout.map {
@@ -163,19 +161,5 @@ class TransactionComposer(val database: AppDatabase) {
                 .setInputsCnt(trezorInputs.size)
                 .setOutputsCnt(trezorOutputs.size)
                 .build()
-    }
-
-    /**
-     * Estimates a total fee based on the number of inputs, outputs and desired fee per byte.
-     */
-    private fun estimateFee(inputs: Int, outputs: Int, fee: Int): Double {
-        return estimateTransactionSize(inputs, outputs) * fee / BTC_TO_SATOSHI.toDouble()
-    }
-
-    /**
-     * Estimates a transaction size in bytes.
-     */
-    private fun estimateTransactionSize(inputs: Int, outputs: Int): Int {
-        return inputs * 180 + outputs * 34 + 10
     }
 }

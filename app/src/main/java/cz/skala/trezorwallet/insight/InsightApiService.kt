@@ -1,10 +1,9 @@
 package cz.skala.trezorwallet.insight
 
 import cz.skala.trezorwallet.insight.response.AddrsTxsResponse
+import cz.skala.trezorwallet.insight.response.SendTxResponse
 import retrofit2.Call
-import retrofit2.http.GET
-import retrofit2.http.Path
-import retrofit2.http.Query
+import retrofit2.http.*
 
 /**
  * An interface for communication with Bitcore Insight API.
@@ -23,4 +22,11 @@ interface InsightApiService {
      */
     @GET("utils/estimatefee")
     fun estimateFee(@Query("nbBlocks") blocks: String): Call<Map<String, Double>>
+
+    /**
+     * Broadcasts the signed transaction as hex string.
+     */
+    @FormUrlEncoded
+    @POST("tx/send")
+    fun sendTx(@Field("rawtx") rawtx: String): Call<SendTxResponse>
 }

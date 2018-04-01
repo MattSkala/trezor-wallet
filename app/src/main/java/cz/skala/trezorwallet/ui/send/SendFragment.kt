@@ -20,6 +20,7 @@ import android.widget.Toast
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
+import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.BitcoinURI
@@ -52,7 +53,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<SendViewModel>() with provider {
-            val factory = SendViewModel.Factory(instance(), instance(), instance())
+            val factory = SendViewModel.Factory(instance(), instance(), instance(), instance(), instance())
             ViewModelProviders.of(this@SendFragment, factory)[SendViewModel::class.java]
         }
     }
@@ -99,6 +100,24 @@ class SendFragment : Fragment(), SupportFragmentInjector {
                 val intent = TrezorActivity.createIntent(context!!, it)
                 startActivityForResult(intent, REQUEST_SIGN)
             }
+        })
+
+        viewModel.onTxSent.observe(this, Observer {
+            if (it != null) {
+                if (it) {
+                    Toast.makeText(context, "Transaction has been sent", Toast.LENGTH_LONG).show()
+                    edtAddress.text = null
+                    edtAmountBtc.text = null
+                    edtAmountUsd.text = null
+                    // TODO: show transaction detail
+                } else {
+                    Toast.makeText(context!!, "Sending transaction failed", Toast.LENGTH_LONG).show()
+                }
+            }
+        })
+
+        viewModel.onInsufficientFunds.observe(this, Observer {
+            Toast.makeText(context, "Insufficient funds", Toast.LENGTH_LONG).show()
         })
     }
 
@@ -160,8 +179,14 @@ class SendFragment : Fragment(), SupportFragmentInjector {
                 handleQrScanResult(scanResult)
             }
             REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
-                val signedIx = data!!.getStringExtra(TrezorActivity.EXTRA_SIGNED_TX)
-                Log.d(TAG, "signedTx: $signedIx")
+                val signedTx = data!!.getStringExtra(TrezorActivity.EXTRA_SIGNED_TX)
+                Log.d(TAG, "signedTx: $signedTx")
+                viewModel.sendTransaction(signedTx)
+            } else {
+                val failure = data?.getSerializableExtra(TrezorActivity.EXTRA_FAILURE) as TrezorMessage.Failure?
+                if (failure != null) {
+                    Toast.makeText(context, failure.message, Toast.LENGTH_LONG).show()
+                }
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }

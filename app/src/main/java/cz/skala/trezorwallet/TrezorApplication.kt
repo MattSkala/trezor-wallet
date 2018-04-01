@@ -5,7 +5,10 @@ import android.arch.persistence.room.Room
 import android.util.Log
 import com.github.salomonbrys.kodein.*
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
+import cz.skala.trezorwallet.compose.CoinSelector
 import cz.skala.trezorwallet.compose.FeeEstimator
+import cz.skala.trezorwallet.compose.FifoCoinSelector
+import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
@@ -61,6 +64,14 @@ class TrezorApplication : Application(), KodeinAware {
 
         bind<FeeEstimator>() with singleton {
             FeeEstimator(instance())
+        }
+
+        bind<CoinSelector>() with singleton {
+            FifoCoinSelector()
+        }
+
+        bind<TransactionComposer>() with singleton {
+            TransactionComposer(instance(), instance())
         }
     }
 
