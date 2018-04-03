@@ -153,6 +153,7 @@ class TransactionRepository(
             val isMine = myAddress != null
             val address = myAddress ?: it.scriptPubKey.addresses?.get(0)
             val isChange = changeAddresses.contains(address)
+
             TransactionOutput(accountTxid, accountId, tx.txid, it.n, address,
                     btcToSat(it.value.toDouble()), it.spentTxId, isMine, isChange, it.scriptPubKey.hex)
         }

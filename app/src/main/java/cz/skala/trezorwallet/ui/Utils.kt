@@ -2,6 +2,7 @@ package cz.skala.trezorwallet.ui
 
 import java.text.NumberFormat
 import java.util.*
+import kotlin.math.roundToLong
 
 const val BTC_TO_SATOSHI = 100000000L
 
@@ -27,5 +28,5 @@ fun formatPrice(value: Double, currencyCode: String): String {
 }
 
 fun btcToSat(btc: Double): Long {
-    return (btc * BTC_TO_SATOSHI).toLong()
+    return (btc * BTC_TO_SATOSHI).roundToLong()
 }

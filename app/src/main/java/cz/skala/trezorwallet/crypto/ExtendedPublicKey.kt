@@ -45,19 +45,17 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
         data.put(parentNode.publicKey.getEncoded(true)) // 33 bytes
         data.putInt(index) // 4 bytes
         val i = hmacSha512(parentNode.chainCode, data.array()) // 64 bytes
-        val il = Arrays.copyOfRange(i, 0, 32)
+        val il = BigInteger(1, Arrays.copyOfRange(i, 0, 32))
         val ir = Arrays.copyOfRange(i, 32, 64)
-
-        val ilInt = BigInteger(1, il)
 
         val curveParams = CustomNamedCurves.getByName(SECP256K1)
 
-        if (ilInt > curveParams.n) {
+        if (il > curveParams.n) {
             throw InvalidKeyException("I_L is larger that the curve order")
         }
 
         val childPublicKey = FixedPointCombMultiplier()
-                .multiply(curveParams.g, ilInt)
+                .multiply(curveParams.g, il)
                 .add(parentNode.publicKey)
 
         if (childPublicKey.isInfinity) {
