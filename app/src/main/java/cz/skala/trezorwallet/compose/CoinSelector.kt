@@ -17,7 +17,7 @@ interface CoinSelector {
      * Selects unspent transactions output that should be used as inputs in the new transaction.
      */
     @Throws(InsufficientFundsException::class)
-    fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>, feeRate: Int):
+    fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>, feeRate: Int, segwit: Boolean):
             Pair<List<TransactionOutput>, Int>
 
     /**
@@ -25,8 +25,8 @@ interface CoinSelector {
      * be smaller than the network would accept, we leave it as an increased miner fee.
      */
     fun needsChangeOutput(inputs: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>,
-                          feeRate: Int): Boolean {
-        val fee = estimateFee(inputs.size, outputs.size, feeRate)
+                          feeRate: Int, segwit: Boolean): Boolean {
+        val fee = estimateFee(inputs, outputs, feeRate, segwit)
 
         var inputsValue = 0L
         inputs.forEach { inputsValue += it.value }

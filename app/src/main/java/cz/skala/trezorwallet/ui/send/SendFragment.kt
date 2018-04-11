@@ -193,6 +193,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
                 val signedTx = data!!.getStringExtra(TrezorActivity.EXTRA_SIGNED_TX)
                 Log.d(TAG, "signedTx: $signedTx")
+                Log.d(TAG, "signedTx size: ${signedTx.length/2}")
                 viewModel.sendTransaction(signedTx)
             } else {
                 val failure = data?.getSerializableExtra(TrezorActivity.EXTRA_FAILURE) as TrezorMessage.Failure?

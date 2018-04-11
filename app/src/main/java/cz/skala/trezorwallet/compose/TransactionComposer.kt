@@ -34,7 +34,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
                 .setScriptType(TrezorType.OutputScriptType.PAYTOADDRESS)
                 .build()
 
-        val (utxo, fee) = coinSelector.select(utxoSet, outputs, feeRate)
+        val (utxo, fee) = coinSelector.select(utxoSet, outputs, feeRate, !account.legacy)
 
         addChangeOutput(account, utxo, outputs, fee)
 
