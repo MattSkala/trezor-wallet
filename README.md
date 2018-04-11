@@ -8,10 +8,7 @@ Coming soon:
 - Account, address and transaction labeling compatible with SLIP-0015 standard
 
 ## Screenshots
-<img src="docs/screen_accounts.png" width="200">
-<img src="docs/screen_addresses.png" width="200">
-<img src="docs/screen_transactions.png" width="200">
-<img src="docs/screen_send.png" width="200">
+<img src="docs/screen_accounts.png" width="200"> <img src="docs/screen_transactions.png" width="200"> <img src="docs/screen_addresses.png" width="200"> <img src="docs/screen_send.png" width="200">
 
 ## Used Libraries
 [trezor-android](https://github.com/MattSkala/trezor-android) – TREZOR communication
