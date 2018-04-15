@@ -1,10 +1,7 @@
 # TREZOR Bitcoin Wallet for Android
 
-With TREZOR Wallet, you can:
 - Import both SegWit and legacy accounts, load transaction history and keep track of the balance
 - Create a transaction, sign it with TREZOR and broadcast to the network
-
-Coming soon:
 - Account, address and transaction labeling compatible with SLIP-0015 standard
 
 ## Screenshots
@@ -21,7 +18,10 @@ Coming soon:
 
 [Kodein](https://github.com/Kodein-Framework/Kodein-DI/) – dependency injection
 
+[Dropbox SDK](https://github.com/dropbox/dropbox-sdk-java) – labels synchronization
+
 ## APIs
 [Insight API](https://github.com/bitpay/insight-api) – transactions fetching and fee estimation
 
 [CoinMarketCap](https://coinmarketcap.com/api/) – exchange rate
+
