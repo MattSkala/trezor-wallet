@@ -21,6 +21,9 @@ interface AddressDao {
     @Query("SELECT * FROM addresses WHERE account = :account AND change = :change ORDER BY `index` ASC")
     fun getByAccountLiveData(account: String, change: Boolean): LiveData<List<Address>>
 
+    @Query("UPDATE addresses SET label = null")
+    fun clearLabels()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(address: Address)
 

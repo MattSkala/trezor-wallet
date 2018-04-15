@@ -5,11 +5,14 @@ import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.*
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.response.Tx
+import cz.skala.trezorwallet.labeling.AccountMetadata
+import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.btcToSat
 
 class TransactionRepository(
         val database: AppDatabase,
-        val fetcher: TransactionFetcher) {
+        val fetcher: TransactionFetcher,
+        val labeling: LabelingManager) {
 
     /**
      * Gets observable transactions list for a specific account.
@@ -26,28 +29,32 @@ class TransactionRepository(
         val (txs, externalChainAddresses, changeAddresses) =
                 fetcher.fetchTransactionsForAccount(account)
 
+        val metadata = if (labeling.isEnabled()) labeling.loadMetadata(account) else null
+
         val myAddresses = externalChainAddresses + changeAddresses
-        val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses)
+        val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses, metadata)
 
         saveTransactions(transactions)
 
-        val externalChainAddressEntities = createAddressEntities(accountId, externalChainAddresses, false)
+        val externalChainAddressEntities = createAddressEntities(accountId, externalChainAddresses,
+                false, metadata)
         calculateAddressTotalReceived(txs, externalChainAddressEntities)
         saveAddresses(externalChainAddressEntities)
-        saveAddresses(createAddressEntities(accountId, changeAddresses, true))
+        saveAddresses(createAddressEntities(accountId, changeAddresses, true, metadata))
 
         val balance = fetcher.calculateBalance(txs, myAddresses)
         database.accountDao().updateBalance(accountId, balance)
     }
 
-    private fun createAddressEntities(accountId: String, addrs: List<String>, change: Boolean): List<Address> {
+    private fun createAddressEntities(accountId: String, addrs: List<String>, change: Boolean,
+                                      metadata: AccountMetadata?): List<Address> {
         return addrs.mapIndexed { index, addr ->
             Address(
                     addr,
                     accountId,
                     change,
                     index,
-                    null,
+                    metadata?.getAddressLabel(addr),
                     0.0
             )
         }
@@ -71,14 +78,14 @@ class TransactionRepository(
     }
 
     private fun createTransactionEntities(txs: Set<Tx>, accountId: String, addresses: List<String>,
-                                          changeAddresses: List<String>): List<TransactionWithInOut> {
+                                          changeAddresses: List<String>, metadata: AccountMetadata?): List<TransactionWithInOut> {
         return txs.map {
-            createTransactionEntity(it, accountId, addresses, changeAddresses)
+            createTransactionEntity(it, accountId, addresses, changeAddresses, metadata)
         }
     }
 
     private fun createTransactionEntity(tx: Tx, accountId: String, myAddresses: List<String>,
-                                        changeAddresses: List<String>): TransactionWithInOut {
+                                        changeAddresses: List<String>, metadata: AccountMetadata?): TransactionWithInOut {
         val isSent = tx.vin.all {
             myAddresses.contains(it.addr)
         }
@@ -153,9 +160,11 @@ class TransactionRepository(
             val isMine = myAddress != null
             val address = myAddress ?: it.scriptPubKey.addresses?.get(0)
             val isChange = changeAddresses.contains(address)
+            val label = metadata?.getOutputLabel(tx.txid, it.n)
 
             TransactionOutput(accountTxid, accountId, tx.txid, it.n, address,
-                    btcToSat(it.value.toDouble()), it.spentTxId, isMine, isChange, it.scriptPubKey.hex)
+                    btcToSat(it.value.toDouble()), it.spentTxId, isMine, isChange,
+                    it.scriptPubKey.hex, label)
         }
 
         return TransactionWithInOut(transaction, vin, vout)

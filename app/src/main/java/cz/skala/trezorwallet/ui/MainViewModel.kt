@@ -1,12 +1,11 @@
 package cz.skala.trezorwallet.ui
 
-import android.arch.lifecycle.LiveData
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
+import android.app.Application
+import android.arch.lifecycle.*
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.labeling.LabelingManager
@@ -17,17 +16,22 @@ import org.jetbrains.anko.coroutines.experimental.bg
 /**
  * A ViewModel for MainActivity.
  */
-class MainViewModel(val database: AppDatabase, val labeling: LabelingManager) : ViewModel() {
+class MainViewModel(app: Application, val database: AppDatabase, val labeling: LabelingManager, val prefs: PreferenceHelper) : AndroidViewModel(app) {
     val accounts: LiveData<List<Account>> by lazy {
         database.accountDao().getAllLiveData()
     }
 
     val selectedAccount = MutableLiveData<Account>()
+    val labelingEnabled = MutableLiveData<Boolean>()
 
     val onTrezorRequest = SingleLiveEvent<TrezorRequest>()
     val onLastAccountEmpty = SingleLiveEvent<Nothing>()
 
     private var isAccountRequestLegacy = false
+
+    init {
+        labelingEnabled.value = labeling.isEnabled()
+    }
 
     fun setSelectedAccount(account: Account) {
         if (selectedAccount.value != account) {
@@ -43,7 +47,7 @@ class MainViewModel(val database: AppDatabase, val labeling: LabelingManager) : 
 
             val lastAccountTransactions = if (lastAccount != null) {
                 bg {
-                    database.transactionDao().getByAccount(lastAccount.xpub).size
+                    database.transactionDao().getByAccount(lastAccount.id).size
                 }.await()
             } else 0
 
@@ -70,14 +74,38 @@ class MainViewModel(val database: AppDatabase, val labeling: LabelingManager) : 
     fun enableLabeling(masterKey: ByteArray) = launch(UI) {
         labeling.setMasterKey(masterKey)
         bg {
-            labeling.deriveAccountKeys(masterKey)
             labeling.fetchAccountsMetadata()
+        }.await()
+        labelingEnabled.value = true
+    }
+
+    fun disableLabeling() = launch(UI) {
+        labeling.disableLabeling()
+        labelingEnabled.value = false
+    }
+
+    /**
+     * Updates currently selected account label.
+     */
+    fun setAccountLabel(label: String) = launch(UI) {
+        val account = selectedAccount.value!!
+        labeling.setAccountLabel(account, label)
+    }
+
+    fun forgetDevice() = launch(UI) {
+        labeling.disableLabeling()
+        bg {
+            database.accountDao().deleteAll()
+            database.transactionDao().deleteAll()
+            database.addressDao().deleteAll()
+            prefs.clear()
         }.await()
     }
 
-    class Factory(val database: AppDatabase, val labeling: LabelingManager) : ViewModelProvider.NewInstanceFactory() {
+    class Factory(val app: Application, val database: AppDatabase, val labeling: LabelingManager,
+                  val prefs: PreferenceHelper) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return MainViewModel(database, labeling) as T
+            return MainViewModel(app, database, labeling, prefs) as T
         }
     }
 }

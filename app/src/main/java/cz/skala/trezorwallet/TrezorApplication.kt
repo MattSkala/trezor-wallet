@@ -77,7 +77,7 @@ class TrezorApplication : Application(), KodeinAware {
         }
 
         bind<TransactionRepository>() with singleton {
-            TransactionRepository(instance(), instance())
+            TransactionRepository(instance(), instance(), instance())
         }
 
         bind<LabelingManager>() with singleton {

@@ -15,8 +15,12 @@ import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.entity.TransactionInput
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.labeling.LabelingManager
+import cz.skala.trezorwallet.ui.LabelDialogFragment
 import cz.skala.trezorwallet.ui.formatBtcValue
 import kotlinx.android.synthetic.main.activity_transaction_detail.*
+import kotlinx.android.synthetic.main.item_transaction_input.view.*
+import org.jetbrains.anko.bundleOf
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,17 +28,19 @@ import java.util.*
 /**
  * A transaction detail activity.
  */
-class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
+class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector, LabelDialogFragment.EditTextDialogListener {
     companion object {
+        const val EXTRA_ACCOUNT_ID = "account_id"
         const val EXTRA_TXID = "txid"
     }
 
     override val injector = KodeinInjector()
+    private val labeling: LabelingManager by injector.instance()
     private val viewModel: TransactionDetailViewModel by injector.instance()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<TransactionDetailViewModel>() with provider {
-            val factory = TransactionDetailViewModel.Factory(instance())
+            val factory = TransactionDetailViewModel.Factory(instance(), instance())
             ViewModelProviders.of(this@TransactionDetailActivity, factory)[TransactionDetailViewModel::class.java]
         }
     }
@@ -48,7 +54,7 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
         val txid = intent.getStringExtra(EXTRA_TXID)
         txtHash.text = txid
 
-        viewModel.start(intent.getStringExtra(EXTRA_TXID))
+        viewModel.start(intent.getStringExtra(EXTRA_ACCOUNT_ID), intent.getStringExtra(EXTRA_TXID))
 
         viewModel.transaction.observe(this, Observer {
             if (it != null) {
@@ -77,6 +83,10 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
         super.onDestroy()
     }
 
+    override fun onTextChanged(text: String) {
+        viewModel.setOutputLabel(text)
+    }
+
     private fun showTransaction(transaction: TransactionWithInOut) {
         val blocktime = transaction.tx.blocktime
         if (blocktime != null && blocktime > 0) {
@@ -93,10 +103,12 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
             txtBlockHeight.visibility = View.GONE
         }
 
+        inputs.removeAllViews()
         transaction.vin.forEach {
             addInputView(it)
         }
 
+        outputs.removeAllViews()
         transaction.vout.forEach {
             addOutputView(it)
         }
@@ -110,6 +122,7 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
         val view = TransactionInOutView(this)
         view.setValue(input.value)
         view.setAddress(input.addr)
+        view.setLabelEnabled(false)
         view.setOnClickListener {
             showAddressOnWeb(input.addr)
         }
@@ -119,11 +132,15 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
     private fun addOutputView(output: TransactionOutput) {
         val view = TransactionInOutView(this)
         view.setValue(output.value)
-        view.setAddress(output.addr ?: "Unknown Address")
+        view.setAddress(output.getDisplayLabel(resources))
+        view.setLabelEnabled(labeling.isEnabled())
         view.setOnClickListener {
             output.addr?.let {
                 showAddressOnWeb(it)
             }
+        }
+        view.btnLabel.setOnClickListener {
+            showLabelDialog(output)
         }
         outputs.addView(view)
     }
@@ -139,5 +156,17 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
         val url = "https://blockchain.info/address/$address"
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         startActivity(browserIntent)
+    }
+
+    private fun showLabelDialog(output: TransactionOutput) {
+        viewModel.selectedOutput = output
+        val fragment = LabelDialogFragment()
+        val title = resources.getString(R.string.output_label)
+        val label = output.label ?: ""
+        fragment.arguments = bundleOf(
+                LabelDialogFragment.ARG_TITLE to title,
+                LabelDialogFragment.ARG_TEXT to label
+        )
+        fragment.show(supportFragmentManager, "dialog")
     }
 }

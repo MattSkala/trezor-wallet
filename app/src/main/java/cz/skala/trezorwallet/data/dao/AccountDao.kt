@@ -27,8 +27,8 @@ interface AccountDao {
     @Query("UPDATE accounts SET balance = :balance WHERE id = :id")
     fun updateBalance(id: String, balance: Double)
 
-    @Query("UPDATE accounts SET labelingKey = :labelingKey WHERE id = :id")
-    fun updateLabelingKey(id: String, labelingKey: String)
+    @Query("UPDATE accounts SET label = null")
+    fun clearLabels()
 
     @Query("DELETE FROM accounts")
     fun deleteAll()

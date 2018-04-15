@@ -131,13 +131,11 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
             var label = ""
             targets.forEach {
-                val addr = it.addr
-                if (addr != null) {
-                    if (label.isNotEmpty()) {
-                        label += "\n"
-                    }
-                    label += addr
+                val addr = it.getDisplayLabel(resources)
+                if (label.isNotEmpty()) {
+                    label += "\n"
                 }
+                label += addr
             }
 
             txtLabel.text = label

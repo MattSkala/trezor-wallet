@@ -91,6 +91,7 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
 
     private fun startTransactionDetailActivity(transaction: TransactionWithInOut) {
         val intent = Intent(activity, TransactionDetailActivity::class.java)
+        intent.putExtra(TransactionDetailActivity.EXTRA_ACCOUNT_ID, transaction.tx.account)
         intent.putExtra(TransactionDetailActivity.EXTRA_TXID, transaction.tx.txid)
         startActivity(intent)
     }

@@ -17,7 +17,7 @@ class Address(
         val account: String,
         val change: Boolean,
         val index: Int,
-        val label: String?,
+        var label: String?,
         var totalReceived: Double
 ) : Parcelable {
     fun getPath(account: Account): IntArray {

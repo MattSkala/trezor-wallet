@@ -13,7 +13,7 @@ fun encodeBase58(input: ByteArray): String {
         zeros++
     }
 
-    var x = BigInteger(input)
+    var x = BigInteger(1, input)
     var output = String()
 
     while (x > 0.toBigInteger()) {

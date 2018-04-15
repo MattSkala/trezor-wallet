@@ -15,15 +15,12 @@ import cz.skala.trezorwallet.data.entity.TransactionWithInOut
  */
 @Dao
 abstract class TransactionDao {
-    @Query("SELECT * FROM transactions WHERE txid = :txid")
+    @Query("SELECT * FROM transactions WHERE txid = :txid AND account = :account")
     @android.arch.persistence.room.Transaction
-    abstract fun getByTxid(txid: String): TransactionWithInOut
+    abstract fun getByTxid(account: String, txid: String): TransactionWithInOut
 
     @Query("SELECT * FROM transactions WHERE account = :account")
     abstract fun getByAccount(account: String): List<Transaction>
-
-    @Query("SELECT * FROM transactions WHERE account = :account")
-    abstract fun getByAccountLiveData(account: String): LiveData<List<Transaction>>
 
     @Query("SELECT * FROM transactions WHERE account = :account")
     @android.arch.persistence.room.Transaction
@@ -32,6 +29,9 @@ abstract class TransactionDao {
     @Query("SELECT * FROM transaction_outputs WHERE account = :account AND isMine = 1 " +
             "AND spentTxId IS NULL")
     abstract fun getUnspentOutputs(account: String): List<TransactionOutput>
+
+    @Query("UPDATE transaction_outputs SET label = null")
+    abstract fun clearLabels()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract fun insert(transaction: Transaction)

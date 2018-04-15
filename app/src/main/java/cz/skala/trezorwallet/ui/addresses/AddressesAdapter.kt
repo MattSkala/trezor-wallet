@@ -128,7 +128,8 @@ class AddressesAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     class AddressViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(address: Address) = with(itemView) {
             txtIndex.text = "/" + address.index.toString()
-            txtLabel.text = address.address
+            val label = address.label
+            txtLabel.text = if (label != null && label.isNotEmpty()) label else address.address
             val receivedValue = formatBtcValue(address.totalReceived)
             val receivedText = SpannableStringBuilder(resources.getString(R.string.total_received, receivedValue))
             val receivedColor = resources.getColor(R.color.colorAccent)

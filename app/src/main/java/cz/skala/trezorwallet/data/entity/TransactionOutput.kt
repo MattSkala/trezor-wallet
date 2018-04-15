@@ -1,6 +1,8 @@
 package cz.skala.trezorwallet.data.entity
 
 import android.arch.persistence.room.Entity
+import android.content.res.Resources
+import cz.skala.trezorwallet.R
 
 /**
  * A transaction output entity.
@@ -16,5 +18,15 @@ class TransactionOutput(
         val spentTxId: String?,
         val isMine: Boolean = false,
         val isChange: Boolean = false,
-        val scriptPubKey: String
-)
+        val scriptPubKey: String,
+        var label: String?
+) {
+    fun getDisplayLabel(resources: Resources): String {
+        val label = label
+        return when {
+            label != null && label.isNotEmpty() -> label
+            addr != null -> addr
+            else -> resources.getString(R.string.unknown_address)
+        }
+    }
+}

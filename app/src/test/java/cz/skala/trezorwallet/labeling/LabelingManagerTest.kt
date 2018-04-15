@@ -7,10 +7,15 @@ import org.junit.Test
 class LabelingManagerTest {
     @Test
     fun deriveAccountKey() {
-        val masterKey = "20c8bf0701213cdcf4c2f56fd0096c1772322d42fb9c4d0ddf6bb122d713d2f3".hexToBytes()
-        val xpub = "xpub6BiVtCpG9fQPxnPmHXG8PhtzQdWC2Su4qWu6XW9tpWFYhxydCLJGrWBJZ5H6qTAHdPQ7pQhtpjiYZVZARo14qHiay2fvrX996oEP42u8wZy"
-        val accountKey = LabelingManager.deriveAccountKey(masterKey, xpub)
+        var masterKey = "20c8bf0701213cdcf4c2f56fd0096c1772322d42fb9c4d0ddf6bb122d713d2f3".hexToBytes()
+        var xpub = "xpub6BiVtCpG9fQPxnPmHXG8PhtzQdWC2Su4qWu6XW9tpWFYhxydCLJGrWBJZ5H6qTAHdPQ7pQhtpjiYZVZARo14qHiay2fvrX996oEP42u8wZy"
+        var accountKey = LabelingManager.deriveAccountKey(masterKey, xpub)
         Assert.assertEquals("v5kCxSKLTsnwmgPBeaRyFDWeG9zXouF34L72763zjLrS4LWy8", accountKey)
+
+        masterKey = "3ae68b955e2a72c6f4f0fd5c63ea45dc3e52d22f479972f6c07778a477f837e9".hexToBytes()
+        xpub = "xpub6CcYFYTZ1HLFnqdxZVyQD2E3rsFtFrtpkyGTcsrSkfv34fBT2ReZuTaVmt2m98XTQJ3EviWw9w4XGeSdfTefSSPrxh3y9kVnDYv2bxrZykv"
+        accountKey = LabelingManager.deriveAccountKey(masterKey, xpub)
+        Assert.assertEquals("2BbfdJHs7ESiguV86hDsG1pmdVC8mkV4HP1TxLSpRGeRxngLD6", accountKey)
     }
 
     @Test

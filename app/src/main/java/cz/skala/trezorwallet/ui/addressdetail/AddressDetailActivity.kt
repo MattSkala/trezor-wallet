@@ -3,8 +3,12 @@ package cz.skala.trezorwallet.ui.addressdetail
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import com.github.salomonbrys.kodein.KodeinInjector
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
@@ -17,10 +21,13 @@ import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
+import cz.skala.trezorwallet.labeling.LabelingManager
+import cz.skala.trezorwallet.ui.LabelDialogFragment
 import kotlinx.android.synthetic.main.activity_address_detail.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import net.glxn.qrgen.android.QRCode
+import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.jetbrains.anko.imageBitmap
 
@@ -28,13 +35,14 @@ import org.jetbrains.anko.imageBitmap
 /**
  * An activity for address detail.
  */
-class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
+class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector, LabelDialogFragment.EditTextDialogListener {
     companion object {
         const val EXTRA_ADDRESS = "address"
     }
 
     override val injector = KodeinInjector()
     private val database: AppDatabase by injector.instance()
+    private val labeling: LabelingManager by injector.instance()
 
     private var account: Account? = null
 
@@ -51,6 +59,8 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
         val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
         txtAddress.text = address.address
 
+        updateActionBarTitle(address)
+
         btnCopy.setOnClickListener {
             copyToClipboard(address)
         }
@@ -66,9 +76,43 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
         showQrCode(address)
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.address_detail, menu)
+        val label = menu.findItem(R.id.label)
+        label.isVisible = labeling.isEnabled()
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.web -> {
+                showAddressOnWeb()
+                true
+            }
+            R.id.label -> {
+                showLabelDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     override fun onDestroy() {
         destroyInjector()
         super.onDestroy()
+    }
+
+    override fun onTextChanged(text: String) {
+        val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
+        launch(UI) {
+            labeling.setAddressLabel(address, text)
+            updateActionBarTitle(address)
+        }
+    }
+
+    private fun updateActionBarTitle(address: Address) {
+        supportActionBar?.title = if (address.label.isNullOrEmpty())
+            resources.getString(R.string.address) else address.label
     }
 
     private fun loadAccount(address: Address) {
@@ -108,5 +152,24 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector {
 
         val intent = TrezorActivity.createIntent(this, CheckAddressRequest(message, address.address))
         startActivity(intent)
+    }
+
+    private fun showAddressOnWeb() {
+        val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS).address
+        val url = "https://blockchain.info/address/$address"
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        startActivity(browserIntent)
+    }
+
+    private fun showLabelDialog() {
+        val fragment = LabelDialogFragment()
+        val title = resources.getString(R.string.address_label)
+        val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
+        val label = address.label ?: ""
+        fragment.arguments = bundleOf(
+                LabelDialogFragment.ARG_TITLE to title,
+                LabelDialogFragment.ARG_TEXT to label
+        )
+        fragment.show(supportFragmentManager, "dialog")
     }
 }

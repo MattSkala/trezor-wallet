@@ -51,7 +51,7 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
         val inputTransactions = mutableMapOf<String, TrezorType.TransactionType>()
 
         utxo.forEach {
-            val tx = database.transactionDao().getByTxid(it.txid)
+            val tx = database.transactionDao().getByTxid(accountId, it.txid)
             val txType = toTrezorTransactionType(tx)
             inputTransactions[it.txid] = txType
         }

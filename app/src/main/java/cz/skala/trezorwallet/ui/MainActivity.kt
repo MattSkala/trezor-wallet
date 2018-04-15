@@ -16,12 +16,10 @@ import android.widget.Toast
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
-import com.satoshilabs.trezor.intents.ui.data.CipherKeyValueRequest
 import com.satoshilabs.trezor.intents.ui.data.CipherKeyValueResult
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
-import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.item.AccountItem
 import cz.skala.trezorwallet.data.item.AccountSectionItem
@@ -33,30 +31,29 @@ import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.send.SendFragment
 import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
+import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.defaultSharedPreferences
 
 
-class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
+class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
+        LabelDialogFragment.EditTextDialogListener {
     companion object {
         private const val TAG = "MainActivity"
 
+        private const val ITEM_ACCOUNT_LABEL = 5
         private const val ITEM_FORGET = 10
         private const val REQUEST_GET_PUBLIC_KEY = 2
         private const val REQUEST_ENABLE_LABELING = 3
     }
 
     override val injector = KodeinInjector()
-    private val database: AppDatabase by injector.instance()
     private val viewModel: MainViewModel by injector.instance()
 
     private val accountsAdapter = AccountsAdapter()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<MainViewModel>() with provider {
-            val factory = MainViewModel.Factory(instance(), instance())
+            val factory = MainViewModel.Factory(application, instance(), instance(), instance())
             ViewModelProviders.of(this@MainActivity, factory)[MainViewModel::class.java]
         }
     }
@@ -87,7 +84,11 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         accountsList.layoutManager = LinearLayoutManager(this)
 
         btnLabeling.setOnClickListener {
-            enableLabeling()
+            if (viewModel.labelingEnabled.value == true) {
+                viewModel.disableLabeling()
+            } else {
+                enableLabeling()
+            }
         }
 
         viewModel.accounts.observe(this, Observer {
@@ -101,6 +102,11 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
                         accountsAdapter.selectedAccount = newSelectedAccount
                         accountsAdapter.notifyDataSetChanged()
                     }
+
+                    // Update selected account title
+                    if (selectedAccount != null) {
+                        supportActionBar?.title = selectedAccount.getDisplayLabel(resources)
+                    }
                 } else {
                     forgetDevice()
                 }
@@ -113,6 +119,13 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             }
         })
 
+        viewModel.labelingEnabled.observe(this, Observer {
+            if (it != null) {
+                invalidateOptionsMenu()
+                btnLabeling.setText(if (it) R.string.disable_labeling else R.string.enable_labeling)
+            }
+        })
+
         viewModel.onTrezorRequest.observe(this, Observer {
             if (it != null) {
                 val intent = TrezorActivity.createIntent(this, it)
@@ -121,7 +134,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         })
 
         viewModel.onLastAccountEmpty.observe(this, Observer {
-            Toast.makeText(applicationContext, R.string.last_account_empty, Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, R.string.last_account_empty,
+                    Toast.LENGTH_LONG).show()
         })
 
         navigation.setOnNavigationItemSelectedListener {
@@ -142,7 +156,12 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, ITEM_FORGET, 0, R.string.forget_device)
+        if (viewModel.labelingEnabled.value == true) {
+            val accountLabel = menu.add(0, ITEM_ACCOUNT_LABEL, 0, R.string.account_label)
+            accountLabel.setIcon(R.drawable.ic_tag_white_24dp)
+            accountLabel.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        }
+        menu.add(0, ITEM_FORGET, 1, R.string.forget_device)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -150,6 +169,10 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         return when (item.itemId) {
             android.R.id.home -> {
                 drawerLayout.openDrawer(GravityCompat.START)
+                true
+            }
+            ITEM_ACCOUNT_LABEL -> {
+                showAccountLabelDialog()
                 true
             }
             ITEM_FORGET -> {
@@ -178,6 +201,10 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         }
     }
 
+    override fun onTextChanged(text: String) {
+        viewModel.setAccountLabel(text)
+    }
+
     private fun initToolbar() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -188,16 +215,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     private fun forgetDevice() {
-        launch(UI) {
-            bg {
-                database.accountDao().deleteAll()
-                database.transactionDao().deleteAll()
-                database.addressDao().deleteAll()
-                defaultSharedPreferences.edit()
-                        .putBoolean(TrezorApplication.PREF_INITIALIZED, false).apply()
-            }.await()
-            startGetStartedActivity()
-        }
+        viewModel.forgetDevice()
+        startGetStartedActivity()
     }
 
     private fun startGetStartedActivity() {
@@ -257,6 +276,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         if (navigation.selectedItemId != R.id.item_transactions) {
             navigation.selectedItemId = R.id.item_transactions
         }
+
+        supportActionBar?.title = account.getDisplayLabel(resources)
     }
 
     private fun replaceFragment(f: Fragment) {
@@ -266,8 +287,19 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
     }
 
     private fun enableLabeling() {
-        val cipherKeyValue = LabelingManager.getCipherKeyValue()
-        val intent = TrezorActivity.createIntent(this, CipherKeyValueRequest(cipherKeyValue))
+        val intent = TrezorActivity.createIntent(this,
+                LabelingManager.createCipherKeyValueRequest())
         startActivityForResult(intent, REQUEST_ENABLE_LABELING)
+    }
+
+    private fun showAccountLabelDialog() {
+        val fragment = LabelDialogFragment()
+        val title = resources.getString(R.string.account_label)
+        val label = viewModel.selectedAccount.value!!.getDisplayLabel(resources)
+        fragment.arguments = bundleOf(
+                LabelDialogFragment.ARG_TITLE to title,
+                LabelDialogFragment.ARG_TEXT to label
+        )
+        fragment.show(supportFragmentManager, "dialog")
     }
 }

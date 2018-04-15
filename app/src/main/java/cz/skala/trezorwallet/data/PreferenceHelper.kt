@@ -74,5 +74,9 @@ class PreferenceHelper(context: Context) {
      */
     var labelingMasterKey: ByteArray?
         get() = prefs.getString(LABELING_MASTER_KEY, null)?.toByteArray()
-        set(value) = prefs.edit().putString(LABELING_MASTER_KEY, value.toString()).apply()
+        set(value) = prefs.edit().putString(LABELING_MASTER_KEY, value?.toString()).apply()
+
+    fun clear() {
+        prefs.edit().clear().apply()
+    }
 }

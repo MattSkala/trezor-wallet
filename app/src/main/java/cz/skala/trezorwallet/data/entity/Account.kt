@@ -19,9 +19,8 @@ class Account(
         val xpub: String,
         val index: Int,
         val legacy: Boolean,
-        val label: String?,
-        val balance: Double,
-        val labelingKey: String?
+        var label: String?,
+        val balance: Double
 ) {
     companion object {
         fun fromNode(node: TrezorType.HDNodeType, xpub: String, legacy: Boolean): Account {
@@ -30,15 +29,22 @@ class Account(
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
             val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
             return Account(accountNode.getAddress(), publicKey, chainCode, xpub, index,
-                    legacy, null, 0.0, null)
+                    legacy, null, 0.0)
+        }
+    }
+
+    fun getDefaultLabel(resources: Resources): String {
+        return when {
+            legacy -> resources.getString(R.string.legacy_account_x, index + 1)
+            else -> resources.getString(R.string.account_x, index + 1)
         }
     }
 
     fun getDisplayLabel(resources: Resources): String {
+        val label = label
         return when {
-            label != null -> label
-            legacy -> resources.getString(R.string.legacy_account_x, index + 1)
-            else -> resources.getString(R.string.account_x, index + 1)
+            label != null && label.isNotEmpty() -> label
+            else -> getDefaultLabel(resources)
         }
     }
 

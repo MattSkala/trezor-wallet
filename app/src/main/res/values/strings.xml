@@ -40,4 +40,9 @@
     <string name="fee_low">Low</string>
     <string name="fee_custom">Custom</string>
     <string name="enable_labeling">Enable Labeling</string>
+    <string name="disable_labeling">Disable Labeling</string>
+    <string name="account_label">Account Label</string>
+    <string name="address_label">Address Label</string>
+    <string name="output_label">Output Label</string>
+    <string name="unknown_address">Unknown Address</string>
 </resources>
