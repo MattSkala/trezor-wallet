@@ -72,10 +72,7 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
     }
 
     fun enableLabeling(masterKey: ByteArray) = launch(UI) {
-        labeling.setMasterKey(masterKey)
-        bg {
-            labeling.fetchAccountsMetadata()
-        }.await()
+        labeling.enableLabeling(masterKey)
         labelingEnabled.value = true
     }
 

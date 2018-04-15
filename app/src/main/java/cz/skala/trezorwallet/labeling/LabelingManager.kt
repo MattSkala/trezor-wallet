@@ -86,17 +86,20 @@ class LabelingManager(
     }
 
     /**
-     * Returns whetter the labeling is enabled (if the master key is not null).
+     * Returns whetter the labeling is enabled.
      */
     fun isEnabled(): Boolean {
         return getMasterKey() != null
     }
 
     /**
-     * Stores the master key.
+     * Enables labeling by setting the master key.
      */
-    fun setMasterKey(masterKey: ByteArray?) {
-        prefs.labelingMasterKey = masterKey
+    suspend fun enableLabeling(masterKey: ByteArray) {
+        bg {
+            setMasterKey(masterKey)
+            fetchAccountsMetadata()
+        }.await()
     }
 
     /**
@@ -111,10 +114,59 @@ class LabelingManager(
     }
 
     /**
-     * Loads the previously stored master key.
+     * Updates an account label.
      */
-    private fun getMasterKey(): ByteArray? {
-        return prefs.labelingMasterKey
+    suspend fun setAccountLabel(account: Account, label: String) {
+        val resources = context.resources
+        val defaultLabel = account.getDefaultLabel(resources)
+        val savedLabel = if (label != defaultLabel) label else null
+        account.label = savedLabel
+
+        bg {
+            database.accountDao().insert(account)
+
+            val metadata = loadMetadata(account)
+            if (metadata != null) {
+                metadata.accountLabel = label
+                saveMetadata(account, metadata)
+            }
+        }.await()
+    }
+
+    /**
+     * Updates an address label.
+     */
+    suspend fun setAddressLabel(address: Address, label: String) {
+        address.label = label
+
+        bg {
+            database.addressDao().insert(address)
+
+            val account = database.accountDao().getById(address.account)
+            val metadata = loadMetadata(account)
+            if (metadata != null) {
+                metadata.setAddressLabel(address.address, label)
+                saveMetadata(account, metadata)
+            }
+        }.await()
+    }
+
+    /**
+     * Updates a transaction output label.
+     */
+    suspend fun setOutputLabel(output: TransactionOutput, label: String) {
+        output.label = label
+
+        bg {
+            database.transactionDao().insert(output)
+
+            val account = database.accountDao().getById(output.account)
+            val metadata = loadMetadata(account)
+            if (metadata != null) {
+                metadata.setOutputLabel(output.txid, output.n, label)
+                saveMetadata(account, metadata)
+            }
+        }.await()
     }
 
     /**
@@ -128,21 +180,33 @@ class LabelingManager(
     }
 
     /**
+     * Stores the master key.
+     */
+    private fun setMasterKey(masterKey: ByteArray?) {
+        prefs.labelingMasterKey = masterKey
+    }
+
+    /**
+     * Loads the previously stored master key.
+     */
+    private fun getMasterKey(): ByteArray? {
+        return prefs.labelingMasterKey
+    }
+
+    /**
      * Save metadata to file.
      */
-    fun saveMetadata(account: Account, metadata: AccountMetadata) {
+    private fun saveMetadata(account: Account, metadata: AccountMetadata) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accountKey = deriveAccountKey(masterKey, account.xpub)
-        if (accountKey != null) {
-            val (filename, password) = deriveFilenameAndPassword(accountKey)
-            saveMetadataToFile(metadata, filename, password)
-        }
+        val (filename, password) = deriveFilenameAndPassword(accountKey)
+        saveMetadataToFile(metadata, filename, password)
     }
 
     /**
      * Decrypts the file with provided password and deserializes the metadata structure.
      */
-    fun loadMetadataFromFile(filename: String, password: ByteArray): AccountMetadata? {
+    private fun loadMetadataFromFile(filename: String, password: ByteArray): AccountMetadata? {
         val file = File(context.filesDir, filename)
         if (!file.exists()) return null
         val bytes = file.readBytes()
@@ -154,7 +218,7 @@ class LabelingManager(
     /**
      * Serializes the structure into JSON, encrypts it with [password] and saves it to [filename].
      */
-    fun saveMetadataToFile(metadata: AccountMetadata, filename: String, password: ByteArray) {
+    private fun saveMetadataToFile(metadata: AccountMetadata, filename: String, password: ByteArray) {
         val file = File(context.filesDir, filename)
         val content = metadata.toJson().toString()
         val data = encryptFile(content, password)
@@ -188,7 +252,7 @@ class LabelingManager(
     /**
      * Fetches metadata for all accounts from Dropbox and updates labels in the database.
      */
-    fun fetchAccountsMetadata() {
+    private fun fetchAccountsMetadata() {
         val accounts = database.accountDao().getAll()
         accounts.forEach {
             fetchAccountMetadata(it)
@@ -205,54 +269,7 @@ class LabelingManager(
     /**
      * Uploads account metadata file to Dropbox.
      */
-    fun uploadAccountMetadata(account: Account) {
+    private fun uploadAccountMetadata(account: Account) {
         // TODO
-    }
-
-    suspend fun setAccountLabel(account: Account, label: String) {
-        val resources = context.resources
-        val defaultLabel = account.getDefaultLabel(resources)
-        val savedLabel = if (label != defaultLabel) label else null
-        account.label = savedLabel
-
-        bg {
-            database.accountDao().insert(account)
-
-            val metadata = loadMetadata(account)
-            if (metadata != null) {
-                metadata.accountLabel = label
-                saveMetadata(account, metadata)
-            }
-        }.await()
-    }
-
-    suspend fun setAddressLabel(address: Address, label: String) {
-        address.label = label
-
-        bg {
-            database.addressDao().insert(address)
-
-            val account = database.accountDao().getById(address.account)
-            val metadata = loadMetadata(account)
-            if (metadata != null) {
-                metadata.setAddressLabel(address.address, label)
-                saveMetadata(account, metadata)
-            }
-        }.await()
-    }
-
-    suspend fun setOutputLabel(output: TransactionOutput, label: String) {
-        output.label = label
-
-        bg {
-            database.transactionDao().insert(output)
-
-            val account = database.accountDao().getById(output.account)
-            val metadata = loadMetadata(account)
-            if (metadata != null) {
-                metadata.setOutputLabel(output.txid, output.n, label)
-                saveMetadata(account, metadata)
-            }
-        }.await()
     }
 }
