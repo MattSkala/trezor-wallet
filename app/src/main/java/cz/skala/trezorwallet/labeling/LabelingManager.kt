@@ -2,6 +2,7 @@ package cz.skala.trezorwallet.labeling
 
 import android.content.Context
 import com.dropbox.core.DbxRequestConfig
+import com.dropbox.core.NetworkIOException
 import com.dropbox.core.http.OkHttp3Requestor
 import com.dropbox.core.v2.DbxClientV2
 import com.dropbox.core.v2.files.DownloadErrorException
@@ -316,6 +317,8 @@ class LabelingManager(
             e.printStackTrace()
         } catch (e: DownloadErrorException) {
             e.printStackTrace()
+        } catch (e: NetworkIOException) {
+            e.printStackTrace()
         }
     }
 
@@ -361,6 +364,8 @@ class LabelingManager(
                     .withMode(WriteMode.OVERWRITE)
                     .uploadAndFinish(inputStream)
         } catch (e: UploadErrorException) {
+            e.printStackTrace()
+        } catch (e: NetworkIOException) {
             e.printStackTrace()
         }
     }
