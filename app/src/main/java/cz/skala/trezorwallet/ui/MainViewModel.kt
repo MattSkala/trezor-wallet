@@ -16,13 +16,14 @@ import org.jetbrains.anko.coroutines.experimental.bg
 /**
  * A ViewModel for MainActivity.
  */
-class MainViewModel(app: Application, val database: AppDatabase, val labeling: LabelingManager, val prefs: PreferenceHelper) : AndroidViewModel(app) {
+class MainViewModel(app: Application, val database: AppDatabase, val labeling: LabelingManager,
+                    val prefs: PreferenceHelper) : AndroidViewModel(app) {
     val accounts: LiveData<List<Account>> by lazy {
         database.accountDao().getAllLiveData()
     }
 
     val selectedAccount = MutableLiveData<Account>()
-    val labelingEnabled = MutableLiveData<Boolean>()
+    val labelingState = MutableLiveData<LabelingState>()
 
     val onTrezorRequest = SingleLiveEvent<TrezorRequest>()
     val onLastAccountEmpty = SingleLiveEvent<Nothing>()
@@ -30,7 +31,8 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
     private var isAccountRequestLegacy = false
 
     init {
-        labelingEnabled.value = labeling.isEnabled()
+        labelingState.value = if (labeling.isEnabled())
+            LabelingState.ENABLED else LabelingState.DISABLED
 
         if (labeling.isEnabled()) {
             launch(UI) {
@@ -39,6 +41,10 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
                 }.await()
             }
         }
+    }
+
+    enum class LabelingState {
+        DISABLED, SYNCING, ENABLED
     }
 
     fun setSelectedAccount(account: Account) {
@@ -80,13 +86,14 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
     }
 
     fun enableLabeling(masterKey: ByteArray) = launch(UI) {
+        labelingState.value = LabelingState.SYNCING
         labeling.enableLabeling(masterKey)
-        labelingEnabled.value = true
+        labelingState.value = LabelingState.ENABLED
     }
 
     fun disableLabeling() = launch(UI) {
         labeling.disableLabeling()
-        labelingEnabled.value = false
+        labelingState.value = LabelingState.DISABLED
     }
 
     fun setDropboxToken(token: String) {

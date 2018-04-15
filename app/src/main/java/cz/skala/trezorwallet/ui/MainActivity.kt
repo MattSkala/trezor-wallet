@@ -10,7 +10,6 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.Toolbar
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -88,10 +87,10 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
         accountsList.layoutManager = LinearLayoutManager(this)
 
         btnLabeling.setOnClickListener {
-            if (viewModel.labelingEnabled.value == true) {
-                viewModel.disableLabeling()
-            } else {
-                enableLabeling()
+            when (viewModel.labelingState.value) {
+                MainViewModel.LabelingState.ENABLED -> viewModel.disableLabeling()
+                MainViewModel.LabelingState.DISABLED -> enableLabeling()
+                else -> {}
             }
         }
 
@@ -123,10 +122,14 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
             }
         })
 
-        viewModel.labelingEnabled.observe(this, Observer {
+        viewModel.labelingState.observe(this, Observer {
             if (it != null) {
                 invalidateOptionsMenu()
-                btnLabeling.setText(if (it) R.string.disable_labeling else R.string.enable_labeling)
+                btnLabeling.setText(when (it) {
+                    MainViewModel.LabelingState.ENABLED -> R.string.disable_labeling
+                    MainViewModel.LabelingState.DISABLED -> R.string.enable_labeling
+                    MainViewModel.LabelingState.SYNCING -> R.string.syncing
+                })
             }
         })
 
@@ -160,7 +163,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        if (viewModel.labelingEnabled.value == true) {
+        if (viewModel.labelingState.value == MainViewModel.LabelingState.ENABLED) {
             val accountLabel = menu.add(0, ITEM_ACCOUNT_LABEL, 0, R.string.account_label)
             accountLabel.setIcon(R.drawable.ic_tag_white_24dp)
             accountLabel.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
@@ -189,8 +192,6 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Log.d("MainActivity", "onActivityResult " + requestCode + " " + resultCode)
-
         when (requestCode) {
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GetPublicKeyResult
