@@ -44,7 +44,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical">
 
             <TextView
@@ -63,7 +63,22 @@
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/accountsList"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:id="@+id/btnLabeling"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:text="@string/enable_labeling"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/textPrimary"
+                android:paddingLeft="24dp"
+                android:paddingRight="24dp"
+                android:drawablePadding="24dp"
+                android:drawableStart="@drawable/ic_dropbox_24dp"
+                android:background="?selectableItemBackground"/>
         </LinearLayout>
     </android.support.design.widget.NavigationView>
 

@@ -39,4 +39,5 @@
     <string name="fee_economy">Economy</string>
     <string name="fee_low">Low</string>
     <string name="fee_custom">Custom</string>
+    <string name="enable_labeling">Enable Labeling</string>
 </resources>

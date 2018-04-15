@@ -62,7 +62,8 @@ class GetStartedActivity : AppCompatActivity() {
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GetPublicKeyResult
                 val node = result.message.node
-                scanAccount(node)
+                val xpub = result.message.xpub
+                scanAccount(node, xpub)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
@@ -80,14 +81,14 @@ class GetStartedActivity : AppCompatActivity() {
         startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
     }
 
-    private fun scanAccount(node: TrezorType.HDNodeType) {
+    private fun scanAccount(node: TrezorType.HDNodeType, xpub: String) {
         launch(UI) {
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
 
             val hasTransactions = bg {
                 val hasTransactions = accountDiscovery.scanAccount(node, legacy)
                 if (hasTransactions || (!legacy && index == 0)) {
-                    saveAccount(node, legacy)
+                    saveAccount(node, xpub, legacy)
                 }
                 hasTransactions
             }.await()
@@ -102,8 +103,8 @@ class GetStartedActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveAccount(node: TrezorType.HDNodeType, legacy: Boolean) {
-        val account = Account.fromNode(node, legacy)
+    private fun saveAccount(node: TrezorType.HDNodeType, xpub: String, legacy: Boolean) {
+        val account = Account.fromNode(node, xpub, legacy)
         database.accountDao().insert(account)
     }
 

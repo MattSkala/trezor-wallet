@@ -15,6 +15,7 @@ import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.insight.InsightApiService
+import cz.skala.trezorwallet.labeling.LabelingManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -77,6 +78,10 @@ class TrezorApplication : Application(), KodeinAware {
 
         bind<TransactionRepository>() with singleton {
             TransactionRepository(instance(), instance())
+        }
+
+        bind<LabelingManager>() with singleton {
+            LabelingManager(applicationContext, instance(), instance())
         }
     }
 

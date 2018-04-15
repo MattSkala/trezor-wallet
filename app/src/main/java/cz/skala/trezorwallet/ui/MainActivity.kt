@@ -16,6 +16,8 @@ import android.widget.Toast
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
+import com.satoshilabs.trezor.intents.ui.data.CipherKeyValueRequest
+import com.satoshilabs.trezor.intents.ui.data.CipherKeyValueResult
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
@@ -25,6 +27,7 @@ import cz.skala.trezorwallet.data.item.AccountItem
 import cz.skala.trezorwallet.data.item.AccountSectionItem
 import cz.skala.trezorwallet.data.item.AddAccountItem
 import cz.skala.trezorwallet.data.item.Item
+import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.addresses.AddressesFragment
 import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.send.SendFragment
@@ -42,6 +45,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
 
         private const val ITEM_FORGET = 10
         private const val REQUEST_GET_PUBLIC_KEY = 2
+        private const val REQUEST_ENABLE_LABELING = 3
     }
 
     override val injector = KodeinInjector()
@@ -52,7 +56,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<MainViewModel>() with provider {
-            val factory = MainViewModel.Factory(instance())
+            val factory = MainViewModel.Factory(instance(), instance())
             ViewModelProviders.of(this@MainActivity, factory)[MainViewModel::class.java]
         }
     }
@@ -81,6 +85,10 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
 
         accountsList.adapter = accountsAdapter
         accountsList.layoutManager = LinearLayoutManager(this)
+
+        btnLabeling.setOnClickListener {
+            enableLabeling()
+        }
 
         viewModel.accounts.observe(this, Observer {
             if (it != null) {
@@ -158,7 +166,13 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GetPublicKeyResult
                 val node = result.message.node
-                viewModel.saveAccount(node)
+                val xpub = result.message.xpub
+                viewModel.saveAccount(node, xpub)
+            }
+            REQUEST_ENABLE_LABELING -> if (resultCode == Activity.RESULT_OK) {
+                val result = TrezorActivity.getResult(data) as CipherKeyValueResult
+                val masterKey = result.message.value.toByteArray()
+                viewModel.enableLabeling(masterKey)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
@@ -249,5 +263,11 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector {
         val ft = supportFragmentManager.beginTransaction()
         ft.replace(R.id.content, f)
         ft.commit()
+    }
+
+    private fun enableLabeling() {
+        val cipherKeyValue = LabelingManager.getCipherKeyValue()
+        val intent = TrezorActivity.createIntent(this, CipherKeyValueRequest(cipherKeyValue))
+        startActivityForResult(intent, REQUEST_ENABLE_LABELING)
     }
 }

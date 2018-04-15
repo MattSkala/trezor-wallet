@@ -16,19 +16,21 @@ class Account(
         @PrimaryKey val id: String,
         @ColumnInfo(typeAffinity = ColumnInfo.BLOB) val publicKey: ByteArray,
         @ColumnInfo(typeAffinity = ColumnInfo.BLOB) val chainCode: ByteArray,
+        val xpub: String,
         val index: Int,
         val legacy: Boolean,
         val label: String?,
-        val balance: Double
+        val balance: Double,
+        val labelingKey: String?
 ) {
     companion object {
-        fun fromNode(node: TrezorType.HDNodeType, legacy: Boolean): Account {
+        fun fromNode(node: TrezorType.HDNodeType, xpub: String, legacy: Boolean): Account {
             val publicKey = node.publicKey.toByteArray()
             val chainCode = node.chainCode.toByteArray()
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
             val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
-            return Account(accountNode.getAddress(), publicKey, chainCode, index,
-                    legacy, null, 0.0)
+            return Account(accountNode.getAddress(), publicKey, chainCode, xpub, index,
+                    legacy, null, 0.0, null)
         }
     }
 

@@ -40,3 +40,12 @@ fun encodeBase58Check(payload: ByteArray, version: Byte): String {
     System.arraycopy(checksum, 0, addressBytes, payload.size + 1, 4)
     return encodeBase58(addressBytes)
 }
+
+fun encodeBase58Check(payload: ByteArray): String {
+    // data bytes + 4 bytes check code
+    val addressBytes = ByteArray(payload.size + 4)
+    System.arraycopy(payload, 0, addressBytes, 0, payload.size)
+    val checksum: ByteArray = sha256(sha256(addressBytes, 0, payload.size))
+    System.arraycopy(checksum, 0, addressBytes, payload.size, 4)
+    return encodeBase58(addressBytes)
+}

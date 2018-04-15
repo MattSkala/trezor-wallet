@@ -15,6 +15,7 @@ class PreferenceHelper(context: Context) {
         private const val FEE_NORMAL = "fee_normal"
         private const val FEE_ECONOMY = "fee_economy"
         private const val FEE_LOW = "fee_low"
+        private const val LABELING_MASTER_KEY = "labeling_master_key"
     }
 
     private val prefs = context.defaultSharedPreferences
@@ -67,4 +68,11 @@ class PreferenceHelper(context: Context) {
     var feeLow: Int
         get() = prefs.getInt(FEE_LOW, 10)
         set(value) = prefs.edit().putInt(FEE_LOW, value).apply()
+
+    /**
+     * The master key user for labeling.
+     */
+    var labelingMasterKey: ByteArray?
+        get() = prefs.getString(LABELING_MASTER_KEY, null)?.toByteArray()
+        set(value) = prefs.edit().putString(LABELING_MASTER_KEY, value.toString()).apply()
 }

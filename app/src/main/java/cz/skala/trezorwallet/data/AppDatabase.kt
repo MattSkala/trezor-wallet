@@ -9,7 +9,7 @@ import cz.skala.trezorwallet.data.dao.TransactionDao
 import cz.skala.trezorwallet.data.entity.*
 
 @Database(entities = [Account::class, Transaction::class, TransactionInput::class,
-    TransactionOutput::class, Address::class], version = 20, exportSchema = false)
+    TransactionOutput::class, Address::class], version = 21, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao

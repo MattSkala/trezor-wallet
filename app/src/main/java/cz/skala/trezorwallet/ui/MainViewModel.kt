@@ -9,6 +9,7 @@ import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
+import cz.skala.trezorwallet.labeling.LabelingManager
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
@@ -16,7 +17,7 @@ import org.jetbrains.anko.coroutines.experimental.bg
 /**
  * A ViewModel for MainActivity.
  */
-class MainViewModel(val database: AppDatabase) : ViewModel() {
+class MainViewModel(val database: AppDatabase, val labeling: LabelingManager) : ViewModel() {
     val accounts: LiveData<List<Account>> by lazy {
         database.accountDao().getAllLiveData()
     }
@@ -42,7 +43,7 @@ class MainViewModel(val database: AppDatabase) : ViewModel() {
 
             val lastAccountTransactions = if (lastAccount != null) {
                 bg {
-                    database.transactionDao().getByAccount(lastAccount.id).size
+                    database.transactionDao().getByAccount(lastAccount.xpub).size
                 }.await()
             } else 0
 
@@ -57,18 +58,26 @@ class MainViewModel(val database: AppDatabase) : ViewModel() {
         }
     }
 
-    fun saveAccount(node: TrezorType.HDNodeType) {
+    fun saveAccount(node: TrezorType.HDNodeType, xpub: String) {
         launch(UI) {
             bg {
-                val account = Account.fromNode(node, isAccountRequestLegacy)
+                val account = Account.fromNode(node, xpub, isAccountRequestLegacy)
                 database.accountDao().insert(account)
             }.await()
         }
     }
 
-    class Factory(val database: AppDatabase) : ViewModelProvider.NewInstanceFactory() {
+    fun enableLabeling(masterKey: ByteArray) = launch(UI) {
+        labeling.setMasterKey(masterKey)
+        bg {
+            labeling.deriveAccountKeys(masterKey)
+            labeling.fetchAccountsMetadata()
+        }.await()
+    }
+
+    class Factory(val database: AppDatabase, val labeling: LabelingManager) : ViewModelProvider.NewInstanceFactory() {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return MainViewModel(database) as T
+            return MainViewModel(database, labeling) as T
         }
     }
 }
