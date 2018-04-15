@@ -33,11 +33,22 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_marginRight="8dp"
-            android:gravity="left"
-            android:text="Coffee"
+            android:text="Coffeee"
+            android:lines="1"
+            android:ellipsize="end"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toLeftOf="@id/txtValueUsd"
             app:layout_constraintTop_toBottomOf="@id/txtDateTime"/>
+
+        <LinearLayout
+            android:id="@+id/otherLabels"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/txtLabel">
+        </LinearLayout>
 
         <TextView
             android:id="@+id/txtValueBtc"

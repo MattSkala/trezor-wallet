@@ -2,9 +2,11 @@ package cz.skala.trezorwallet.ui.transactions
 
 import android.annotation.SuppressLint
 import android.support.v7.widget.RecyclerView
+import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.entity.Transaction
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
@@ -18,6 +20,7 @@ import cz.skala.trezorwallet.ui.formatPrice
 import kotlinx.android.synthetic.main.item_account_summary.view.*
 import kotlinx.android.synthetic.main.item_transaction.view.*
 import kotlinx.android.synthetic.main.item_transaction_date.view.*
+import org.jetbrains.anko.lines
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -129,16 +132,19 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 }
             }
 
-            var label = ""
-            targets.forEach {
-                val addr = it.getDisplayLabel(resources)
-                if (label.isNotEmpty()) {
-                    label += "\n"
-                }
-                label += addr
-            }
+            otherLabels.removeAllViews()
 
-            txtLabel.text = label
+            targets.forEachIndexed { index, output ->
+                if (index == 0) {
+                    txtLabel.text = output.getDisplayLabel(resources)
+                } else {
+                    val view = TextView(context)
+                    view.text = output.getDisplayLabel(resources)
+                    view.ellipsize = TextUtils.TruncateAt.END
+                    view.lines = 1
+                    otherLabels.addView(view)
+                }
+            }
 
             val sign = if (transaction.tx.type == Transaction.Type.RECV) "+" else "−"
             val value = if (transaction.tx.type == Transaction.Type.RECV) transaction.tx.value
@@ -150,7 +156,7 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             }
             txtValueBtc.setTextColor(resources.getColor(colorRes))
             txtValueUsd.text = formatPrice((value.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode)
-            txtValueUsd.visibility = View.GONE
+            txtValueUsd.visibility = View.VISIBLE
         }
     }
 }
