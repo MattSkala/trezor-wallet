@@ -29,7 +29,12 @@ class TransactionRepository(
         val (txs, externalChainAddresses, changeAddresses) =
                 fetcher.fetchTransactionsForAccount(account)
 
-        val metadata = if (labeling.isEnabled()) labeling.loadMetadata(account) else null
+        val metadata = if (labeling.isEnabled()) {
+            labeling.downloadAccountMetadata(account)
+            labeling.loadMetadata(account)
+        } else {
+            null
+        }
 
         val myAddresses = externalChainAddresses + changeAddresses
         val transactions = createTransactionEntities(txs, accountId, myAddresses, changeAddresses, metadata)

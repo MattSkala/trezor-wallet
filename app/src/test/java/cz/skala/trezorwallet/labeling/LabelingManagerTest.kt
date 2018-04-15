@@ -43,7 +43,7 @@ class LabelingManagerTest {
                 "48627ebc130286ba98"
         val accountKey = "v5kCxSKLTsnwmgPBeaRyFDWeG9zXouF34L72763zjLrS4LWy8"
         val (filename, password) = LabelingManager.deriveFilenameAndPassword(accountKey)
-        val content = LabelingManager.decryptFile(data.hexToBytes(), password)
+        val content = LabelingManager.decryptData(data.hexToBytes(), password)
         Assert.assertEquals("{\"accountLabel\":\"Saving account\",\"addressLabels\":{\"1JAd7XCBzGudGpJQSDSfpmJhiygtLQWaGL\":\"My receiving address\",\"1GWFxtwWmNVqotUPXLcKVL2mUKpshuJYo\":\"\"},\"version\":\"1.0.0\",\"outputLabels\":{\"350eebc1012ce2339b71b5fca317a0d174abc3a633684bc65a71845deb596539\":{\"0\":\"Money to Adam\"},\"ebbd138134e2c8acfee4fd4edb6f7f9175ee7b4020bcc82aba9a13ce06fae85b\":{\"0\":\"Feeding bitcoin eater\"}}}", content)
     }
 }

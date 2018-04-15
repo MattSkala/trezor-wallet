@@ -61,6 +61,7 @@ dependencies {
     implementation 'com.github.salomonbrys.kodein:kodein:4.1.0'
     implementation 'com.github.salomonbrys.kodein:kodein-android:4.1.0'
     implementation 'com.github.kenglxn.QRGen:android:2.4.0'
+    implementation 'com.dropbox.core:dropbox-core-sdk:3.0.7'
     implementation 'com.jakewharton.timber:timber:4.5.1'
 
     testImplementation 'junit:junit:4.12'

@@ -31,6 +31,14 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
 
     init {
         labelingEnabled.value = labeling.isEnabled()
+
+        if (labeling.isEnabled()) {
+            launch(UI) {
+                bg {
+                    labeling.downloadAccountsMetadata()
+                }.await()
+            }
+        }
     }
 
     fun setSelectedAccount(account: Account) {
@@ -79,6 +87,10 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
     fun disableLabeling() = launch(UI) {
         labeling.disableLabeling()
         labelingEnabled.value = false
+    }
+
+    fun setDropboxToken(token: String) {
+        labeling.setDropboxToken(token)
     }
 
     /**

@@ -12,6 +12,7 @@ import android.view.View
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import cz.skala.trezorwallet.R
+import cz.skala.trezorwallet.data.entity.Transaction
 import cz.skala.trezorwallet.data.entity.TransactionInput
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
@@ -110,7 +111,7 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
 
         outputs.removeAllViews()
         transaction.vout.forEach {
-            addOutputView(it)
+            addOutputView(transaction, it)
         }
 
         txtFee.text = formatBtcValue(transaction.tx.fee)
@@ -129,11 +130,14 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
         inputs.addView(view)
     }
 
-    private fun addOutputView(output: TransactionOutput) {
+    private fun addOutputView(transaction: TransactionWithInOut, output: TransactionOutput) {
         val view = TransactionInOutView(this)
         view.setValue(output.value)
         view.setAddress(output.getDisplayLabel(resources))
-        view.setLabelEnabled(labeling.isEnabled())
+        val labelable = if (transaction.tx.type == Transaction.Type.RECV)
+            output.isMine else
+            !output.isChange
+        view.setLabelEnabled(labeling.isEnabled() && labelable)
         view.setOnClickListener {
             output.addr?.let {
                 showAddressOnWeb(it)

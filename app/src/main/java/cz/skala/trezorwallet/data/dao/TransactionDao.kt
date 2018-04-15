@@ -30,6 +30,9 @@ abstract class TransactionDao {
             "AND spentTxId IS NULL")
     abstract fun getUnspentOutputs(account: String): List<TransactionOutput>
 
+    @Query("UPDATE transaction_outputs SET label = :label WHERE account = :account AND txid = :txid AND n = :index")
+    abstract fun updateLabel(account: String, txid: String, index: Int, label: String?)
+
     @Query("UPDATE transaction_outputs SET label = null")
     abstract fun clearLabels()
 

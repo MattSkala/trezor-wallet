@@ -10,9 +10,11 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.Toolbar
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import com.dropbox.core.android.Auth
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
@@ -50,6 +52,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
     private val viewModel: MainViewModel by injector.instance()
 
     private val accountsAdapter = AccountsAdapter()
+
+    private var dropboxAuthRequested = false
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<MainViewModel>() with provider {
@@ -185,6 +189,8 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        Log.d("MainActivity", "onActivityResult " + requestCode + " " + resultCode)
+
         when (requestCode) {
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GetPublicKeyResult
@@ -198,6 +204,19 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
                 viewModel.enableLabeling(masterKey)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (dropboxAuthRequested) {
+            val dropboxToken = Auth.getOAuth2Token()
+            if (dropboxToken != null) {
+                viewModel.setDropboxToken(dropboxToken)
+                sendLabelingMasterKeyRequest()
+            }
+            dropboxAuthRequested = false
         }
     }
 
@@ -287,6 +306,11 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
     }
 
     private fun enableLabeling() {
+        dropboxAuthRequested = true
+        Auth.startOAuth2Authentication(this, getString(R.string.dropbox_app_key))
+    }
+
+    private fun sendLabelingMasterKeyRequest() {
         val intent = TrezorActivity.createIntent(this,
                 LabelingManager.createCipherKeyValueRequest())
         startActivityForResult(intent, REQUEST_ENABLE_LABELING)

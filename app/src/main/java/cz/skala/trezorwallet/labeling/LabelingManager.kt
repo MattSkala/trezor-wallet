@@ -1,6 +1,13 @@
 package cz.skala.trezorwallet.labeling
 
 import android.content.Context
+import com.dropbox.core.DbxRequestConfig
+import com.dropbox.core.http.OkHttp3Requestor
+import com.dropbox.core.v2.DbxClientV2
+import com.dropbox.core.v2.files.DownloadErrorException
+import com.dropbox.core.v2.files.GetMetadataErrorException
+import com.dropbox.core.v2.files.UploadErrorException
+import com.dropbox.core.v2.files.WriteMode
 import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.hexToBytes
 import com.satoshilabs.trezor.intents.toHex
@@ -15,9 +22,14 @@ import cz.skala.trezorwallet.data.entity.TransactionOutput
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.security.InvalidKeyException
 
 
+/**
+ * A manager that handles encryption/decryption and Dropbox synchronization of account metadata.
+ */
 class LabelingManager(
         private val context: Context,
         private val prefs: PreferenceHelper,
@@ -28,6 +40,7 @@ class LabelingManager(
         private const val CIPHER_VALUE = "fedcba98765432100123456789abcdeffedcba98765432100123456789abcdef"
         private const val CONSTANT = "0123456789abcdeffedcba9876543210"
         private const val METADATA_EXTENSION = ".mtdt"
+        private const val DROPBOX_PATH = "/Apps/TREZOR"
 
         /**
          * Returns a TREZOR request for deriving the master key.
@@ -67,7 +80,7 @@ class LabelingManager(
         /**
          * Encrypts the file content with a password.
          */
-        fun encryptFile(content: String, password: ByteArray): ByteArray {
+        fun encryptData(content: String, password: ByteArray): ByteArray {
             val bytes = content.toByteArray()
             val (iv, tag, cipherText) = encryptAesGcm(bytes, password)
             return iv + tag + cipherText
@@ -76,7 +89,7 @@ class LabelingManager(
         /**
          * Decrypts the file content with a password.
          */
-        fun decryptFile(bytes: ByteArray, password: ByteArray): String {
+        fun decryptData(bytes: ByteArray, password: ByteArray): String {
             val iv = bytes.copyOfRange(0, 12)
             val tag = bytes.copyOfRange(12, 28)
             val cipherText = bytes.copyOfRange(28, bytes.size)
@@ -93,12 +106,19 @@ class LabelingManager(
     }
 
     /**
+     * Stores Dropbox OAuth token.
+     */
+    fun setDropboxToken(token: String) {
+        prefs.dropboxToken = token
+    }
+
+    /**
      * Enables labeling by setting the master key.
      */
     suspend fun enableLabeling(masterKey: ByteArray) {
         bg {
             setMasterKey(masterKey)
-            fetchAccountsMetadata()
+            downloadAccountsMetadata()
         }.await()
     }
 
@@ -129,6 +149,7 @@ class LabelingManager(
             if (metadata != null) {
                 metadata.accountLabel = label
                 saveMetadata(account, metadata)
+                uploadAccountMetadata(account)
             }
         }.await()
     }
@@ -147,6 +168,7 @@ class LabelingManager(
             if (metadata != null) {
                 metadata.setAddressLabel(address.address, label)
                 saveMetadata(account, metadata)
+                uploadAccountMetadata(account)
             }
         }.await()
     }
@@ -165,6 +187,7 @@ class LabelingManager(
             if (metadata != null) {
                 metadata.setOutputLabel(output.txid, output.n, label)
                 saveMetadata(account, metadata)
+                uploadAccountMetadata(account)
             }
         }.await()
     }
@@ -210,7 +233,7 @@ class LabelingManager(
         val file = File(context.filesDir, filename)
         if (!file.exists()) return null
         val bytes = file.readBytes()
-        val content = decryptFile(bytes, password)
+        val content = decryptData(bytes, password)
         val json = JSONObject(content)
         return AccountMetadata.fromJson(json)
     }
@@ -221,7 +244,7 @@ class LabelingManager(
     private fun saveMetadataToFile(metadata: AccountMetadata, filename: String, password: ByteArray) {
         val file = File(context.filesDir, filename)
         val content = metadata.toJson().toString()
-        val data = encryptFile(content, password)
+        val data = encryptData(content, password)
         file.writeBytes(data)
     }
 
@@ -252,24 +275,93 @@ class LabelingManager(
     /**
      * Fetches metadata for all accounts from Dropbox and updates labels in the database.
      */
-    private fun fetchAccountsMetadata() {
+    fun downloadAccountsMetadata() {
         val accounts = database.accountDao().getAll()
         accounts.forEach {
-            fetchAccountMetadata(it)
+            downloadAccountMetadata(it)
+            updateDatabaseLabels(it)
         }
     }
 
     /**
-     * Fetches account metadata from Dropbox and updates labels in the database.
+     * Creates a Dropbox client with previously stored OAuth token.
      */
-    private fun fetchAccountMetadata(account: Account) {
-        // TODO
+    private fun getDropboxClient(): DbxClientV2 {
+        val accessToken = prefs.dropboxToken
+        val requestConfig = DbxRequestConfig.newBuilder("TrezorWalletAndroid/1.0")
+                .withHttpRequestor(OkHttp3Requestor(OkHttp3Requestor.defaultOkHttpClient()))
+                .build()
+        return DbxClientV2(requestConfig, accessToken)
+    }
+
+    /**
+     * Fetches account metadata from Dropbox.
+     */
+    fun downloadAccountMetadata(account: Account) {
+        val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
+        val accountKey = deriveAccountKey(masterKey, account.xpub)
+        val (filename, _) = deriveFilenameAndPassword(accountKey)
+
+        try {
+            val path = "$DROPBOX_PATH/$filename"
+
+            // check if file exists
+            getDropboxClient().files().getMetadata(path)
+
+            // download file
+            val file = File(context.filesDir, filename)
+            val outputStream = FileOutputStream(file)
+            getDropboxClient().files().download(path).download(outputStream)
+        } catch (e: GetMetadataErrorException) {
+            e.printStackTrace()
+        } catch (e: DownloadErrorException) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Updates database labels from the account metadata file.
+     */
+    private fun updateDatabaseLabels(account: Account) {
+        val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
+        val accountKey = deriveAccountKey(masterKey, account.xpub)
+        val (filename, password) = deriveFilenameAndPassword(accountKey)
+
+        val metadata = loadMetadataFromFile(filename, password)
+        if (metadata != null) {
+            account.label = metadata.accountLabel
+            database.accountDao().insert(account)
+
+            metadata.addressLabels.forEach { address, label ->
+                database.addressDao().updateLabel(account.id, address, label)
+            }
+
+            metadata.outputLabels.forEach { txid, outputs ->
+                outputs?.forEach { index, label ->
+                    database.transactionDao().updateLabel(account.id, txid, index.toInt(), label)
+                }
+            }
+        }
     }
 
     /**
      * Uploads account metadata file to Dropbox.
      */
     private fun uploadAccountMetadata(account: Account) {
-        // TODO
+        val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
+        val accountKey = deriveAccountKey(masterKey, account.xpub)
+        val (filename, _) = deriveFilenameAndPassword(accountKey)
+        val file = File(context.filesDir, filename)
+        val inputStream = FileInputStream(file)
+
+        try {
+            val path = "$DROPBOX_PATH/$filename"
+            getDropboxClient().files()
+                    .uploadBuilder(path)
+                    .withMode(WriteMode.OVERWRITE)
+                    .uploadAndFinish(inputStream)
+        } catch (e: UploadErrorException) {
+            e.printStackTrace()
+        }
     }
 }

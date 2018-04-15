@@ -1,6 +1,8 @@
 package cz.skala.trezorwallet.data
 
 import android.content.Context
+import com.satoshilabs.trezor.intents.hexToBytes
+import com.satoshilabs.trezor.intents.toHex
 import org.jetbrains.anko.defaultSharedPreferences
 
 /**
@@ -16,6 +18,7 @@ class PreferenceHelper(context: Context) {
         private const val FEE_ECONOMY = "fee_economy"
         private const val FEE_LOW = "fee_low"
         private const val LABELING_MASTER_KEY = "labeling_master_key"
+        private const val DROPBOX_TOKEN = "dropbox_token"
     }
 
     private val prefs = context.defaultSharedPreferences
@@ -73,8 +76,15 @@ class PreferenceHelper(context: Context) {
      * The master key user for labeling.
      */
     var labelingMasterKey: ByteArray?
-        get() = prefs.getString(LABELING_MASTER_KEY, null)?.toByteArray()
-        set(value) = prefs.edit().putString(LABELING_MASTER_KEY, value?.toString()).apply()
+        get() = prefs.getString(LABELING_MASTER_KEY, null)?.hexToBytes()
+        set(value) = prefs.edit().putString(LABELING_MASTER_KEY, value?.toHex()).apply()
+
+    /**
+     * Dropbox OAuth2 token.
+     */
+    var dropboxToken: String?
+        get() = prefs.getString(DROPBOX_TOKEN, null)
+        set(value) = prefs.edit().putString(DROPBOX_TOKEN, value).apply()
 
     fun clear() {
         prefs.edit().clear().apply()
