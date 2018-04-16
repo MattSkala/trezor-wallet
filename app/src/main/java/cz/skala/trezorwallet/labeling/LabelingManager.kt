@@ -41,7 +41,6 @@ class LabelingManager(
         private const val CIPHER_VALUE = "fedcba98765432100123456789abcdeffedcba98765432100123456789abcdef"
         private const val CONSTANT = "0123456789abcdeffedcba9876543210"
         private const val METADATA_EXTENSION = ".mtdt"
-        private const val DROPBOX_PATH = "/Apps/TREZOR"
 
         /**
          * Returns a TREZOR request for deriving the master key.
@@ -304,7 +303,7 @@ class LabelingManager(
         val (filename, _) = deriveFilenameAndPassword(accountKey)
 
         try {
-            val path = "$DROPBOX_PATH/$filename"
+            val path = "/$filename"
 
             // check if file exists
             getDropboxClient().files().getMetadata(path)
@@ -358,7 +357,7 @@ class LabelingManager(
         val inputStream = FileInputStream(file)
 
         try {
-            val path = "$DROPBOX_PATH/$filename"
+            val path = "/$filename"
             getDropboxClient().files()
                     .uploadBuilder(path)
                     .withMode(WriteMode.OVERWRITE)
