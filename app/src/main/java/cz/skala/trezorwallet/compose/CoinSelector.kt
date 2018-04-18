@@ -1,41 +1,30 @@
 package cz.skala.trezorwallet.compose
 
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
-import cz.skala.trezorwallet.compose.FeeEstimator.Companion.estimateFee
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 
+/**
+ * An interface for coin selection algorithms.
+ */
 interface CoinSelector {
     companion object {
         /**
          * The minimum output value allowed when relaying transactions.
          */
-        const val MINIMUM_OUTPUT_VALUE: Long = 546
+        const val DUST_THRESHOLD: Long = 546
     }
 
     /**
-     * Selects unspent transactions output that should be used as inputs in the new transaction.
+     * Selects UTXOs that should be used as inputs in a new transaction.
+     *
+     * @param utxoSet A list of all available UTXOs sorted from the oldest.
+     * @param outputs A list of the transaction outputs.
+     * @param feeRate The selected fee rate in satoshis per byte.
+     * @param segwit True for segwit, false for legacy accounts.
+     * @return A pair of selected UTXOs and the calculated transaction fee in satoshis.
      */
     @Throws(InsufficientFundsException::class)
-    fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>, feeRate: Int, segwit: Boolean):
-            Pair<List<TransactionOutput>, Int>
-
-    /**
-     * Returns whether we should add change output to the transaction. If the change output would
-     * be smaller than the network would accept, we leave it as an increased miner fee.
-     */
-    fun needsChangeOutput(inputs: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>,
-                          feeRate: Int, segwit: Boolean): Boolean {
-        val fee = estimateFee(inputs, outputs, feeRate, segwit)
-
-        var inputsValue = 0L
-        inputs.forEach { inputsValue += it.value }
-
-        var outputsValue = 0L
-        outputs.forEach { outputsValue += it.amount }
-
-        val change = inputsValue - outputsValue - fee
-
-        return (change >= MINIMUM_OUTPUT_VALUE)
-    }
+    fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>,
+               feeRate: Int, segwit: Boolean): Pair<List<TransactionOutput>, Int>
 }

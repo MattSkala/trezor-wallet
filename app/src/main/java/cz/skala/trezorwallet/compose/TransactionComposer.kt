@@ -1,9 +1,7 @@
 package cz.skala.trezorwallet.compose
 
-import android.util.Log
 import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.hexToBytes
-import com.satoshilabs.trezor.intents.toHex
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Account
@@ -11,21 +9,30 @@ import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 
-class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelector) {
+/**
+ * The transaction composer builds an unsigned transaction using UTXOs on a specified account.
+ * At the moment, it can build only transactions with a single target address. It allows specifying
+ * a custom fee rate.
+ */
+class TransactionComposer(
+        private val database: AppDatabase,
+        private val coinSelector: CoinSelector
+) {
     /**
      * Composes a new transaction.
      *
-     * @param [accountId] An account to spend UTXOs from.
-     * @param [address] Target Bitcoin address encoded as Base58Check.
-     * @param [amount] Amount in satoshis to be sent to the target address.
-     * @param [feeRate] Mining fee in satoshis per byte.
+     * @param accountId An account to spend UTXOs from.
+     * @param address Target Bitcoin address encoded as Base58Check.
+     * @param amount Amount in satoshis to be sent to the target address.
+     * @param feeRate Mining fee in satoshis per byte.
+     * @return A pair of the constructed transaction and a map of referenced non-SegWit
+     * transactions with TXIDs as keys.
      */
     @Throws(InsufficientFundsException::class)
     fun composeTransaction(accountId: String, address: String, amount: Long, feeRate: Int):
             Pair<TrezorType.TransactionType, Map<String, TrezorType.TransactionType>> {
         val account = database.accountDao().getById(accountId)
-
-        val utxoSet = database.transactionDao().getUnspentOutputs(account.id)
+        val utxoSet = database.transactionDao().getUnspentOutputs(accountId)
 
         val outputs = mutableListOf<TrezorType.TxOutputType>()
         outputs += TrezorType.TxOutputType.newBuilder()
@@ -38,42 +45,32 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
 
         addChangeOutput(account, utxo, outputs, fee)
 
-        val trezorInputs = createTrezorInputs(account, utxo)
-        val trezorOutputs = outputs
+        val inputs = createTrezorInputs(account, utxo)
 
-        val trezorTransaction = TrezorType.TransactionType.newBuilder()
-                .addAllInputs(trezorInputs)
-                .addAllOutputs(trezorOutputs)
-                .setInputsCnt(trezorInputs.size)
-                .setOutputsCnt(trezorOutputs.size)
+        val transaction = TrezorType.TransactionType.newBuilder()
+                .addAllInputs(inputs)
+                .addAllOutputs(outputs)
+                .setInputsCnt(inputs.size)
+                .setOutputsCnt(outputs.size)
                 .build()
 
-        val inputTransactions = mutableMapOf<String, TrezorType.TransactionType>()
-
-        utxo.forEach {
-            val tx = database.transactionDao().getByTxid(accountId, it.txid)
-            val txType = toTrezorTransactionType(tx)
-            inputTransactions[it.txid] = txType
-        }
-
-        Log.d("TransactionComposer", "TREZOR Transaction")
-        Log.d("TransactionComposer", trezorTransaction.toString())
-        Log.d("TransactionComposer", "Referenced Transactions")
-        inputTransactions.forEach { key, value ->
-            Log.d("TransactionComposer", "txid: $key")
-            Log.d("TransactionComposer", value.toString())
-            value.inputsList.forEachIndexed { i, input ->
-                Log.d("TransactionComposer", "input #$i " + input.prevHash.toByteArray().toHex() + " " + input.prevIndex + " " + input.scriptSig.toByteArray().toHex() + " " + input.sequence)
-            }
-            value.binOutputsList.forEachIndexed { i, output ->
-                Log.d("TransactionComposer", "output #$i " + output.amount + " " + output.scriptPubkey.toByteArray().toHex())
+        // Provide a list of referenced transactions for non-SegWit inputs
+        val referencedTransactions = mutableMapOf<String, TrezorType.TransactionType>()
+        if (account.legacy) {
+            utxo.forEach {
+                val tx = database.transactionDao().getByTxid(accountId, it.txid)
+                referencedTransactions[it.txid] = toTrezorTransactionType(tx)
             }
         }
 
-        return Pair(trezorTransaction, inputTransactions)
+        return Pair(transaction, referencedTransactions)
     }
 
-    private fun createTrezorInputs(account: Account, utxo: List<TransactionOutput>): List<TrezorType.TxInputType> {
+    /**
+     * Maps TransctionOutput entities to TxInputType objects.
+     */
+    private fun createTrezorInputs(account: Account, utxo: List<TransactionOutput>):
+            List<TrezorType.TxInputType> {
         return utxo.map {
             val addr = database.addressDao().getByAddress(account.id, it.addr!!)
 
@@ -101,8 +98,10 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
      */
     private fun addChangeOutput(account: Account, inputs: List<TransactionOutput>,
                                 outputs: MutableList<TrezorType.TxOutputType>, fee: Int) {
-        // TODO: get fresh change address
-        val changeAddress = database.addressDao().getByAccount(account.id, true).first()
+        // Get fresh change address
+        val changeAddress = database.addressDao().getByAccount(account.id, true).first {
+            it.totalReceived == 0.0
+        }
 
         val changeScriptType = if (account.legacy) {
             TrezorType.OutputScriptType.PAYTOADDRESS
@@ -110,27 +109,21 @@ class TransactionComposer(val database: AppDatabase, val coinSelector: CoinSelec
             TrezorType.OutputScriptType.PAYTOP2SHWITNESS
         }
 
-        var inputsValue = 0L
-        inputs.forEach { inputsValue += it.value }
-
-        var outputsValue = 0L
-        outputs.forEach { outputsValue += it.amount }
-
+        val inputsValue = inputs.sumBy { it.value.toInt() }
+        val outputsValue = outputs.sumBy { it.amount.toInt() }
         val changeValue = inputsValue - outputsValue - fee
 
-        Log.d("TransactionComposer", "inputs: $inputsValue outputs: $outputsValue fee: $fee change: $changeValue")
-
-        if (changeValue >= CoinSelector.MINIMUM_OUTPUT_VALUE) {
+        if (changeValue >= CoinSelector.DUST_THRESHOLD) {
             outputs += TrezorType.TxOutputType.newBuilder()
                     .addAllAddressN(changeAddress.getPath(account).toList())
-                    .setAmount(changeValue)
+                    .setAmount(changeValue.toLong())
                     .setScriptType(changeScriptType)
                     .build()
         }
     }
 
     /**
-     * Converts an existing transaction from db into TransactionType for usage in TREZOR request.
+     * Converts an existing transaction entity into TransactionType for usage in TREZOR request.
      */
     private fun toTrezorTransactionType(tx: TransactionWithInOut): TrezorType.TransactionType {
         val trezorInputs = tx.vin.map {

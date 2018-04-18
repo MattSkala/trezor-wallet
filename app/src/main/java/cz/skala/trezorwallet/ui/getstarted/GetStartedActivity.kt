@@ -10,6 +10,8 @@ import com.github.salomonbrys.kodein.instance
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
 import com.satoshilabs.trezor.intents.ui.data.InitializeRequest
+import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
+import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
@@ -57,6 +59,8 @@ class GetStartedActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
             REQUEST_INITIALIZE -> if (resultCode == Activity.RESULT_OK) {
+                val result = TrezorActivity.getResult(data)
+                val message = result!!.message as TrezorMessage.Features
                 getPublicKeyForAccount(0, false)
             }
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
@@ -70,7 +74,10 @@ class GetStartedActivity : AppCompatActivity() {
     }
 
     private fun initializeConnection() {
-        val intent = TrezorActivity.createIntent(this, InitializeRequest())
+        val intent = TrezorActivity.createIntent(this,
+                InitializeRequest(TrezorMessage.Initialize.getDefaultInstance()))
+        TrezorActivity.createIntent(this,
+                TrezorRequest(TrezorMessage.Initialize.getDefaultInstance()))
         startActivityForResult(intent, REQUEST_INITIALIZE)
     }
 

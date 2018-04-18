@@ -157,7 +157,7 @@ class SendViewModel(
     }
 
     fun validateAmount(amount: Double): Boolean {
-        return btcToSat(amount) >= CoinSelector.MINIMUM_OUTPUT_VALUE
+        return btcToSat(amount) >= CoinSelector.DUST_THRESHOLD
     }
 
     fun validateFee(fee: Int): Boolean {

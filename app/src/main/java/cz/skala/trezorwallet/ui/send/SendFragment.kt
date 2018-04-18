@@ -191,7 +191,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
                 handleQrScanResult(scanResult)
             }
             REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
-                val signedTx = data!!.getStringExtra(TrezorActivity.EXTRA_SIGNED_TX)
+                val signedTx = TrezorActivity.getSignedTx(data)!!
                 Log.d(TAG, "signedTx: $signedTx")
                 Log.d(TAG, "signedTx size: ${signedTx.length/2}")
                 viewModel.sendTransaction(signedTx)

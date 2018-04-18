@@ -89,16 +89,12 @@ class TransactionsViewModel(
         transactionsLiveData.observeForever(transactionsObserver)
     }
 
-    private fun fetchRate() {
-        launch(UI) {
-            try {
-                prefs.rate = bg {
-                    coinMarketCapClient.fetchRate(prefs.currencyCode)
-                }.await().toFloat()
-                updateItems()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+    private fun fetchRate() = launch(UI) {
+        try {
+            prefs.rate = coinMarketCapClient.fetchRate(prefs.currencyCode).toFloat()
+            updateItems()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

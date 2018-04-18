@@ -1,47 +1,50 @@
 package cz.skala.trezorwallet.compose
 
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
+import cz.skala.trezorwallet.compose.CoinSelector.Companion.DUST_THRESHOLD
+import cz.skala.trezorwallet.compose.FeeEstimator.Companion.changeOutputBytes
 import cz.skala.trezorwallet.compose.FeeEstimator.Companion.estimateFee
-import cz.skala.trezorwallet.compose.FeeEstimator.Companion.outputBytes
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 
+/**
+ * FIFO (First In, First Out) algorithm accumulates UTXOs from the oldest, until the target is
+ * reached or exceeded.
+ */
 class FifoCoinSelector : CoinSelector {
-    /**
-     * Accumulates inputs until the target value is reached.
-     */
-    override fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>, feeRate: Int, segwit: Boolean):
-            Pair<List<TransactionOutput>, Int> {
+    override fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>,
+                        feeRate: Int, segwit: Boolean): Pair<List<TransactionOutput>, Int> {
+        val target = outputs.sumBy { it.amount.toInt() }
 
-        var outputsValue = 0L
-        outputs.forEach { outputsValue += it.amount }
-
-        val selectedUtxo = mutableListOf<TransactionOutput>()
+        val inputs = mutableListOf<TransactionOutput>()
         var inputsValue = 0L
 
         var fee = 0
 
         for (utxo in utxoSet) {
             // We have enough funds already
-            if (inputsValue >= outputsValue + fee) {
+            if (inputsValue >= target + fee) {
                 break
             }
 
-            selectedUtxo += utxo
+            // Add UTXO to inputs
+            inputs += utxo
             inputsValue += utxo.value
 
-            fee = estimateFee(selectedUtxo, outputs, feeRate, segwit)
-            if (needsChangeOutput(selectedUtxo, outputs, feeRate, segwit)) {
-                val changeOutputSize = outputBytes(segwit)
-                fee += changeOutputSize * feeRate
+            // Update the transaction fee
+            fee = estimateFee(inputs.size, outputs, feeRate, segwit)
+
+            // If a change output is needed, increase the fee
+            if (inputsValue - target - fee > DUST_THRESHOLD) {
+                fee += changeOutputBytes(segwit) * feeRate
             }
         }
 
         // Not enough funds selected
-        if (inputsValue < outputsValue + fee) {
+        if (inputsValue < target + fee) {
             throw InsufficientFundsException()
         }
 
-        return Pair(selectedUtxo, fee)
+        return Pair(inputs, fee)
     }
 }
