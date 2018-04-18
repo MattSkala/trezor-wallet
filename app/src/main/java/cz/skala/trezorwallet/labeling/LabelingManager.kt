@@ -233,6 +233,7 @@ class LabelingManager(
         val file = File(context.filesDir, filename)
         if (!file.exists()) return null
         val bytes = file.readBytes()
+        if (bytes.isEmpty()) return null
         val content = decryptData(bytes, password)
         val json = JSONObject(content)
         return AccountMetadata.fromJson(json)

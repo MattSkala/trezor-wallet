@@ -21,7 +21,6 @@ import android.widget.Toast
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
-import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.BitcoinURI
@@ -193,10 +192,10 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
                 val signedTx = TrezorActivity.getSignedTx(data)!!
                 Log.d(TAG, "signedTx: $signedTx")
-                Log.d(TAG, "signedTx size: ${signedTx.length/2}")
+                Log.d(TAG, "signedTx size: ${signedTx.length / 2}")
                 viewModel.sendTransaction(signedTx)
             } else {
-                val failure = data?.getSerializableExtra(TrezorActivity.EXTRA_FAILURE) as TrezorMessage.Failure?
+                val failure = TrezorActivity.getFailure(data)
                 if (failure != null) {
                     Toast.makeText(context, failure.message, Toast.LENGTH_LONG).show()
                 }
