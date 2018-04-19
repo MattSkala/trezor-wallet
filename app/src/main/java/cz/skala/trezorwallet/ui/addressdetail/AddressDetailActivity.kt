@@ -19,6 +19,7 @@ import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
 import cz.skala.trezorwallet.labeling.LabelingManager
@@ -43,6 +44,7 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector, La
     override val injector = KodeinInjector()
     private val database: AppDatabase by injector.instance()
     private val labeling: LabelingManager by injector.instance()
+    private val prefs: PreferenceHelper by injector.instance()
 
     private var account: Account? = null
 
@@ -150,7 +152,8 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector, La
                     TrezorType.InputScriptType.SPENDP2SHWITNESS)
                 .build()
 
-        val intent = TrezorActivity.createIntent(this, CheckAddressRequest(message, address.address))
+        val intent = TrezorActivity.createIntent(this,
+                CheckAddressRequest(message, address.address, prefs.deviceState))
         startActivity(intent)
     }
 

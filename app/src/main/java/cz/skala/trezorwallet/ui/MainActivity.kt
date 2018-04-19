@@ -17,8 +17,7 @@ import com.dropbox.core.android.Auth
 import com.github.salomonbrys.kodein.*
 import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
-import com.satoshilabs.trezor.intents.ui.data.CipherKeyValueResult
-import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
+import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.data.entity.Account
@@ -194,14 +193,14 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
-                val result = TrezorActivity.getResult(data) as GetPublicKeyResult
-                val node = result.message.node
-                val xpub = result.message.xpub
+                val message = TrezorActivity.getMessage(data) as TrezorMessage.PublicKey
+                val node = message.node
+                val xpub = message.xpub
                 viewModel.saveAccount(node, xpub)
             }
             REQUEST_ENABLE_LABELING -> if (resultCode == Activity.RESULT_OK) {
-                val result = TrezorActivity.getResult(data) as CipherKeyValueResult
-                val masterKey = result.message.value.toByteArray()
+                val message = TrezorActivity.getMessage(data) as TrezorMessage.CipheredKeyValue
+                val masterKey = message.value.toByteArray()
                 viewModel.enableLabeling(masterKey)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)

@@ -1,7 +1,7 @@
 package cz.skala.trezorwallet.discovery
 
 import android.util.Log
-import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyRequest
+import com.satoshilabs.trezor.intents.ui.data.GenericRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
@@ -31,7 +31,7 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
                     .addAddressN(coinType.toInt())
                     .addAddressN(account.toInt())
                     .build()
-            return GetPublicKeyRequest(message)
+            return GenericRequest(message)
         }
     }
 

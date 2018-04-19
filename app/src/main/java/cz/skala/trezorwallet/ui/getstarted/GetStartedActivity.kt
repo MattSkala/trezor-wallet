@@ -8,15 +8,14 @@ import com.github.salomonbrys.kodein.KodeinInjector
 import com.github.salomonbrys.kodein.android.appKodein
 import com.github.salomonbrys.kodein.instance
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
-import com.satoshilabs.trezor.intents.ui.data.GetPublicKeyResult
-import com.satoshilabs.trezor.intents.ui.data.InitializeRequest
-import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
+import com.satoshilabs.trezor.intents.ui.data.GenericResult
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.AppDatabase
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.ui.MainActivity
@@ -41,6 +40,7 @@ class GetStartedActivity : AppCompatActivity() {
     private val injector = KodeinInjector()
     private val accountDiscovery: AccountDiscoveryManager by injector.instance()
     private val database: AppDatabase by injector.instance()
+    private val prefs: PreferenceHelper by injector.instance()
 
     private var legacy = false
 
@@ -59,25 +59,23 @@ class GetStartedActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
             REQUEST_INITIALIZE -> if (resultCode == Activity.RESULT_OK) {
-                val result = TrezorActivity.getResult(data)
-                val message = result!!.message as TrezorMessage.Features
                 getPublicKeyForAccount(0, false)
             }
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
-                val result = TrezorActivity.getResult(data) as GetPublicKeyResult
-                val node = result.message.node
-                val xpub = result.message.xpub
-                scanAccount(node, xpub)
+                val result = TrezorActivity.getResult(data) as GenericResult
+                if (result.state != null) {
+                    prefs.deviceState = result.state
+                }
+                val message = result.message as TrezorMessage.PublicKey
+                scanAccount(message.node, message.xpub)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
     private fun initializeConnection() {
-        val intent = TrezorActivity.createIntent(this,
-                InitializeRequest(TrezorMessage.Initialize.getDefaultInstance()))
-        TrezorActivity.createIntent(this,
-                TrezorRequest(TrezorMessage.Initialize.getDefaultInstance()))
+        val intent = TrezorActivity.createGenericIntent(this,
+                TrezorMessage.Initialize.getDefaultInstance())
         startActivityForResult(intent, REQUEST_INITIALIZE)
     }
 

@@ -12,7 +12,8 @@ import com.dropbox.core.v2.files.WriteMode
 import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.hexToBytes
 import com.satoshilabs.trezor.intents.toHex
-import com.satoshilabs.trezor.intents.ui.data.CipherKeyValueRequest
+import com.satoshilabs.trezor.intents.ui.data.GenericRequest
+import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.crypto.*
 import cz.skala.trezorwallet.data.AppDatabase
@@ -45,8 +46,8 @@ class LabelingManager(
         /**
          * Returns a TREZOR request for deriving the master key.
          */
-        fun createCipherKeyValueRequest(): CipherKeyValueRequest {
-            val cipherKeyValue = TrezorMessage.CipherKeyValue.newBuilder()
+        fun createCipherKeyValueRequest(): TrezorRequest {
+            val message = TrezorMessage.CipherKeyValue.newBuilder()
                     .addAddressN(hardened(10015))
                     .addAddressN(hardened(0))
                     .setKey(CIPHER_KEY)
@@ -55,7 +56,7 @@ class LabelingManager(
                     .setAskOnEncrypt(true)
                     .setAskOnDecrypt(true)
                     .build()
-            return CipherKeyValueRequest(cipherKeyValue)
+            return GenericRequest(message)
         }
 
         /**

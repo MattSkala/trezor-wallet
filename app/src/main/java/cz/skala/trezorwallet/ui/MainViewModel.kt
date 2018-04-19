@@ -109,7 +109,9 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
     }
 
     fun forgetDevice() = launch(UI) {
-        labeling.disableLabeling()
+        if (labeling.isEnabled()) {
+            labeling.disableLabeling()
+        }
         bg {
             database.accountDao().deleteAll()
             database.transactionDao().deleteAll()

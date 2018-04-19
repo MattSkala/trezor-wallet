@@ -1,6 +1,8 @@
 package cz.skala.trezorwallet.data
 
 import android.content.Context
+import android.util.Log
+import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.hexToBytes
 import com.satoshilabs.trezor.intents.toHex
 import org.jetbrains.anko.defaultSharedPreferences
@@ -19,6 +21,7 @@ class PreferenceHelper(context: Context) {
         private const val FEE_LOW = "fee_low"
         private const val LABELING_MASTER_KEY = "labeling_master_key"
         private const val DROPBOX_TOKEN = "dropbox_token"
+        private const val DEVICE_STATE = "device_state"
     }
 
     private val prefs = context.defaultSharedPreferences
@@ -85,6 +88,22 @@ class PreferenceHelper(context: Context) {
     var dropboxToken: String?
         get() = prefs.getString(DROPBOX_TOKEN, null)
         set(value) = prefs.edit().putString(DROPBOX_TOKEN, value).apply()
+
+    /**
+     * TREZOR device state.
+     */
+    var deviceState: ByteString?
+        get() {
+            val string = prefs.getString(DEVICE_STATE, null)
+            Log.d("TrezorPrefs", "get device state = $string")
+            return if (string != null) ByteString.copyFrom(string.hexToBytes()) else null
+        }
+        set(value) {
+            value?.toByteArray()
+            val hex = value?.toByteArray()?.toHex()
+            Log.d("TrezorPrefs", "set device state = $hex")
+            prefs.edit().putString(DEVICE_STATE, hex).apply()
+        }
 
     fun clear() {
         prefs.edit().clear().apply()
