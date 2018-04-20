@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -43,6 +42,9 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
         private const val REQUEST_SCAN_QR = 20
         private const val REQUEST_SIGN = 30
+
+        private const val EXTRA_SCAN_RESULT = "SCAN_RESULT"
+        private const val EXTRA_SCAN_MODE = "SCAN_MODE"
 
         private const val FEE_SPINNER_POSITION_CUSTOM = 4
     }
@@ -107,7 +109,8 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
         viewModel.sending.observe(this, Observer {
             if (it == true) {
-                progressDialog = ProgressDialog.show(context, "Sending", "Please wait")
+                progressDialog = ProgressDialog.show(context, resources.getString(R.string.sending),
+                        resources.getString(R.string.please_wait))
             } else {
                 progressDialog?.dismiss()
             }
@@ -115,7 +118,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
         viewModel.onTxSent.observe(this, Observer {
             if (it != null) {
-                Toast.makeText(context, "Transaction has been sent", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, R.string.transaction_sent, Toast.LENGTH_LONG).show()
                 edtAddress.text = null
                 edtAmountBtc.text = null
                 edtAmountUsd.text = null
@@ -123,12 +126,12 @@ class SendFragment : Fragment(), SupportFragmentInjector {
                 val accountId = arguments!!.getString(ARG_ACCOUNT_ID)
                 (activity as MainActivity).showTransactions(accountId)
             } else {
-                Toast.makeText(context!!, "Sending transaction failed", Toast.LENGTH_LONG).show()
+                Toast.makeText(context!!, R.string.sending_failed, Toast.LENGTH_LONG).show()
             }
         })
 
         viewModel.onInsufficientFunds.observe(this, Observer {
-            Toast.makeText(context, "Insufficient funds", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, R.string.insufficient_funds, Toast.LENGTH_LONG).show()
         })
     }
 
@@ -185,20 +188,12 @@ class SendFragment : Fragment(), SupportFragmentInjector {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
             REQUEST_SCAN_QR -> if (resultCode == Activity.RESULT_OK) {
-                val scanResult = data!!.getStringExtra("SCAN_RESULT")
-                Log.d(TAG, "scanResult: $scanResult")
+                val scanResult = data!!.getStringExtra(EXTRA_SCAN_RESULT)
                 handleQrScanResult(scanResult)
             }
             REQUEST_SIGN -> if (resultCode == Activity.RESULT_OK) {
                 val signedTx = TrezorActivity.getSignedTx(data)!!
-                Log.d(TAG, "signedTx: $signedTx")
-                Log.d(TAG, "signedTx size: ${signedTx.length / 2}")
                 viewModel.sendTransaction(signedTx)
-            } else {
-                val failure = TrezorActivity.getFailure(data)
-                if (failure != null) {
-                    Toast.makeText(context, failure.message, Toast.LENGTH_LONG).show()
-                }
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
@@ -214,7 +209,8 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             if (fees != null) {
                 val spinnerList = FeeLevel.values().map { level ->
                     val fee = fees[level]
-                    resources.getString(level.titleRes) + " ($fee sat/B)"
+                    resources.getString(level.titleRes) + " (" +
+                            resources.getString(R.string.sat_per_byte, fee.toString()) + ")"
                 }.toMutableList()
                 spinnerList.add(resources.getString(R.string.fee_custom))
                 updateFeeSpinnerAdapter(spinnerList)
@@ -245,17 +241,17 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
     private fun handleSendClick() {
         if (edtAddress.text.isEmpty()) {
-            edtAddress.error = "Missing address"
+            edtAddress.error = getString(R.string.missing_address)
             return
         }
 
         if (edtAmountBtc.text.isEmpty()) {
-            edtAmountBtc.error = "Missing amount"
+            edtAmountBtc.error = getString(R.string.missing_amount)
             return
         }
 
         if (spnFee.selectedItemPosition == FEE_SPINNER_POSITION_CUSTOM && edtFee.text.isEmpty()) {
-            edtFee.error = "Missing fee"
+            edtFee.error = getString(R.string.missing_fee)
             return
         }
 
@@ -271,17 +267,17 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         }
 
         if (!viewModel.validateAddress(address)) {
-            edtAddress.error = "Invalid address"
+            edtAddress.error = getString(R.string.invalid_address)
             return
         }
 
         if (!viewModel.validateAmount(amount)) {
-            edtAmountBtc.error = "Invalid amount"
+            edtAmountBtc.error = getString(R.string.invalid_amount)
             return
         }
 
         if (!viewModel.validateFee(fee)) {
-            edtFee.error = "Invalid fee"
+            edtFee.error = getString(R.string.invalid_fee)
             return
         }
 
@@ -290,7 +286,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
 
     private fun startQrScanner() {
         val intent = Intent("com.google.zxing.client.android.SCAN")
-        intent.putExtra("SCAN_MODE", "QR_CODE_MODE")
+        intent.putExtra(EXTRA_SCAN_MODE, "QR_CODE_MODE")
 
         if (intent.resolveActivity(context!!.packageManager) != null) {
             startActivityForResult(intent, REQUEST_SCAN_QR)
@@ -317,7 +313,7 @@ class SendFragment : Fragment(), SupportFragmentInjector {
                 // Not a Bitcoin URI, but just a plain text address
                 edtAddress.setText(scanResult)
             } else {
-                Toast.makeText(context, "Invalid address", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.invalid_address, Toast.LENGTH_SHORT).show()
             }
         }
     }

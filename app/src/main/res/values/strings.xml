@@ -30,7 +30,7 @@
     <string name="confirmed">Confirmed</string>
     <string name="in_block_x">In block #%s</string>
     <string name="show_on_web">Open Blockchain.info</string>
-    <string name="sat_per_byte">%s sat/byte</string>
+    <string name="sat_per_byte">%s sat/B</string>
     <string name="inputs">Inputs</string>
     <string name="outputs">Outputs</string>
     <string name="fee">Fee</string>
@@ -46,4 +46,17 @@
     <string name="address_label">Address Label</string>
     <string name="output_label">Output Label</string>
     <string name="unknown_address">Unknown Address</string>
+
+    <!-- Send -->
+    <string name="sending">Sending</string>
+    <string name="please_wait">Please wait</string>
+    <string name="transaction_sent">Transaction has been sent</string>
+    <string name="sending_failed">Sending transaction failed</string>
+    <string name="insufficient_funds">Insufficient funds</string>
+    <string name="missing_address">Missing address</string>
+    <string name="missing_amount">Missing amount</string>
+    <string name="missing_fee">Missing fee</string>
+    <string name="invalid_address">Invalid address</string>
+    <string name="invalid_amount">Invalid amount</string>
+    <string name="invalid_fee">Invalid fee</string>
 </resources>
