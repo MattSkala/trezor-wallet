@@ -19,6 +19,7 @@ import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
+import java.io.IOException
 
 /**
  * A ViewModel for SendFragment.
@@ -132,21 +133,25 @@ class SendViewModel(
 
     private fun fetchRecommendedFees() {
         launch(UI) {
-            val fees = feeEstimator.fetchRecommendedFees()
-            if (fees != null) {
-                fees[FeeLevel.HIGH]?.let {
-                    prefs.feeHigh = it
+            try {
+                val fees = feeEstimator.fetchRecommendedFees()
+                if (fees != null) {
+                    fees[FeeLevel.HIGH]?.let {
+                        prefs.feeHigh = it
+                    }
+                    fees[FeeLevel.NORMAL]?.let {
+                        prefs.feeNormal = it
+                    }
+                    fees[FeeLevel.ECONOMY]?.let {
+                        prefs.feeEconomy = it
+                    }
+                    fees[FeeLevel.LOW]?.let {
+                        prefs.feeLow = it
+                    }
+                    recommendedFees.value = fees
                 }
-                fees[FeeLevel.NORMAL]?.let {
-                    prefs.feeNormal = it
-                }
-                fees[FeeLevel.ECONOMY]?.let {
-                    prefs.feeEconomy = it
-                }
-                fees[FeeLevel.LOW]?.let {
-                    prefs.feeLow = it
-                }
-                recommendedFees.value = fees
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
         }
     }

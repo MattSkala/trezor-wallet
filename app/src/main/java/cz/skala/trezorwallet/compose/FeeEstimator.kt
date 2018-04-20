@@ -6,6 +6,7 @@ import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 import org.jetbrains.anko.coroutines.experimental.bg
+import java.io.IOException
 
 /**
  * A helper class for fetching recommended fee rates and estimating the fee based on
@@ -142,6 +143,7 @@ class FeeEstimator(
      *
      * @return A map of [FeeLevel] to the recommended fee rate in satoshis per byte.
      */
+    @Throws(IOException::class)
     suspend fun fetchRecommendedFees(): Map<FeeLevel, Int>? {
         return bg {
             // Block numbers separated by a comma
