@@ -6,7 +6,7 @@ import org.spongycastle.crypto.engines.AESEngine
 import org.spongycastle.crypto.modes.GCMBlockCipher
 import org.spongycastle.crypto.params.AEADParameters
 import org.spongycastle.crypto.params.KeyParameter
-import java.util.*
+import java.security.SecureRandom
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -91,7 +91,7 @@ fun encryptAesGcm(plainText: ByteArray, password: ByteArray): Triple<ByteArray, 
     val key = KeyParameter(password)
 
     val iv = ByteArray(GCM_NONCE_LENGTH)
-    Random().nextBytes(iv)
+    SecureRandom().nextBytes(iv)
 
     val params = AEADParameters(key, GCM_TAG_LENGTH * 8, iv)
 
