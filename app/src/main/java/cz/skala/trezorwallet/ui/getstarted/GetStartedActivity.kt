@@ -1,76 +1,80 @@
 package cz.skala.trezorwallet.ui.getstarted
 
 import android.app.Activity
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import com.github.salomonbrys.kodein.KodeinInjector
-import com.github.salomonbrys.kodein.android.appKodein
-import com.github.salomonbrys.kodein.instance
+import com.github.salomonbrys.kodein.*
+import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.intents.ui.data.GenericResult
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
-import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
-import cz.skala.trezorwallet.TrezorApplication
-import cz.skala.trezorwallet.crypto.ExtendedPublicKey
-import cz.skala.trezorwallet.data.AppDatabase
-import cz.skala.trezorwallet.data.PreferenceHelper
-import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.ui.MainActivity
 import kotlinx.android.synthetic.main.activity_get_started.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
-import org.jetbrains.anko.defaultSharedPreferences
 
 
 /**
  * An introductory activity where account discovery is performed after TREZOR device is connected.
  */
-class GetStartedActivity : AppCompatActivity() {
+class GetStartedActivity : AppCompatActivity(), AppCompatActivityInjector {
     companion object {
-        private const val TAG = "GetStartedActivity"
-
         private const val REQUEST_INITIALIZE = 1
         private const val REQUEST_GET_PUBLIC_KEY = 2
     }
 
-    private val injector = KodeinInjector()
-    private val accountDiscovery: AccountDiscoveryManager by injector.instance()
-    private val database: AppDatabase by injector.instance()
-    private val prefs: PreferenceHelper by injector.instance()
+    override val injector = KodeinInjector()
 
-    private var legacy = false
+    private val viewModel: GetStartedViewModel by injector.instance()
+
+    override fun provideOverridingModule() = Kodein.Module {
+        bind<GetStartedViewModel>() with provider {
+            val factory = GetStartedViewModel.Factory(instance(), instance(), instance(), instance())
+            ViewModelProviders.of(this@GetStartedActivity, factory)[GetStartedViewModel::class.java]
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        injector.inject(appKodein())
+        initializeInjector()
 
         setContentView(R.layout.activity_get_started)
 
         btnContinue.setOnClickListener {
             initializeConnection()
         }
+
+        viewModel.onPublicKeyRequest.observe(this, Observer {
+            if (it != null) {
+                getPublicKeyForAccount(it.i, it.legacy)
+            }
+        })
+
+        viewModel.onAccountDiscoveryFinish.observe(this, Observer {
+            finishAccountDiscovery()
+        })
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
             REQUEST_INITIALIZE -> if (resultCode == Activity.RESULT_OK) {
-                getPublicKeyForAccount(0, false)
+                viewModel.startAccountDiscovery()
             }
             REQUEST_GET_PUBLIC_KEY -> if (resultCode == Activity.RESULT_OK) {
                 val result = TrezorActivity.getResult(data) as GenericResult
-                if (result.state != null) {
-                    prefs.deviceState = result.state
-                }
-                val message = result.message as TrezorMessage.PublicKey
-                scanAccount(message.node, message.xpub)
+                viewModel.onPublicKeyResult(result)
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
+    }
+
+    override fun onDestroy() {
+        destroyInjector()
+        super.onDestroy()
     }
 
     private fun initializeConnection() {
@@ -80,43 +84,12 @@ class GetStartedActivity : AppCompatActivity() {
     }
 
     private fun getPublicKeyForAccount(i: Int, legacy: Boolean) {
-        this.legacy = legacy
         val request = AccountDiscoveryManager.createGetPublicKeyRequest(i, legacy)
         val intent = TrezorActivity.createIntent(this, request)
         startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
     }
 
-    private fun scanAccount(node: TrezorType.HDNodeType, xpub: String) {
-        launch(UI) {
-            val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
-
-            val hasTransactions = bg {
-                val hasTransactions = accountDiscovery.scanAccount(node, legacy)
-                if (hasTransactions || (!legacy && index == 0)) {
-                    saveAccount(node, xpub, legacy)
-                }
-                hasTransactions
-            }.await()
-
-            if (hasTransactions) {
-                getPublicKeyForAccount(index + 1, legacy)
-            } else if (!legacy) {
-                getPublicKeyForAccount(0, true)
-            } else {
-                finishAccountDiscovery()
-            }
-        }
-    }
-
-    private fun saveAccount(node: TrezorType.HDNodeType, xpub: String, legacy: Boolean) {
-        val account = Account.fromNode(node, xpub, legacy)
-        database.accountDao().insert(account)
-    }
-
     private fun finishAccountDiscovery() {
-        defaultSharedPreferences.edit()
-                .putBoolean(TrezorApplication.PREF_INITIALIZED, true).apply()
-
         startMainActivity()
     }
 
