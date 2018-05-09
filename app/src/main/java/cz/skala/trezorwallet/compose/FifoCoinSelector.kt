@@ -2,8 +2,6 @@ package cz.skala.trezorwallet.compose
 
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.compose.CoinSelector.Companion.DUST_THRESHOLD
-import cz.skala.trezorwallet.compose.FeeEstimator.Companion.changeOutputBytes
-import cz.skala.trezorwallet.compose.FeeEstimator.Companion.estimateFee
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 
@@ -32,7 +30,7 @@ class FifoCoinSelector : CoinSelector {
             inputsValue += utxo.value
 
             // Update the transaction fee
-            fee = estimateFee(inputs.size, outputs, feeRate, segwit)
+            fee = calculateFee(inputs.size, outputs, feeRate, segwit)
 
             // If a change output is needed, increase the fee
             if (inputsValue - target - fee > DUST_THRESHOLD) {
