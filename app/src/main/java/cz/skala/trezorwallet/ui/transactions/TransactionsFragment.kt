@@ -4,43 +4,41 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.github.salomonbrys.kodein.*
-import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.ui.BaseFragment
 import cz.skala.trezorwallet.ui.transactiondetail.TransactionDetailActivity
 import kotlinx.android.synthetic.main.fragment_transactions.*
+import org.kodein.di.Kodein
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 
 
 /**
  * A fragment for transactions list.
  */
-class TransactionsFragment : Fragment(), SupportFragmentInjector {
+class TransactionsFragment : BaseFragment() {
     companion object {
         const val ARG_ACCOUNT_ID = "account_id"
     }
 
-    override val injector = KodeinInjector()
-    private val viewModel: TransactionsViewModel by injector.instance()
+    private val viewModel: TransactionsViewModel by instance()
 
     private val adapter = TransactionsAdapter()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<TransactionsViewModel>() with provider {
-            val factory = TransactionsViewModel.Factory(instance(), instance(), instance(), instance())
-            ViewModelProviders.of(this@TransactionsFragment, factory)[TransactionsViewModel::class.java]
+            ViewModelProviders.of(this@TransactionsFragment)[TransactionsViewModel::class.java]
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        initializeInjector()
 
         val args = arguments ?: return
         viewModel.start(args.getString(ARG_ACCOUNT_ID))
@@ -82,11 +80,6 @@ class TransactionsFragment : Fragment(), SupportFragmentInjector {
         btnHideAccount.setOnClickListener {
             viewModel.removeAccount()
         }
-    }
-
-    override fun onDestroy() {
-        destroyInjector()
-        super.onDestroy()
     }
 
     private fun startTransactionDetailActivity(transaction: TransactionWithInOut) {

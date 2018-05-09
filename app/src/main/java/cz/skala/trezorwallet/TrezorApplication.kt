@@ -3,7 +3,6 @@ package cz.skala.trezorwallet
 import android.app.Application
 import android.arch.persistence.room.Room
 import android.util.Log
-import com.github.salomonbrys.kodein.*
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.compose.CoinSelector
 import cz.skala.trezorwallet.compose.FeeEstimator
@@ -18,13 +17,19 @@ import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.labeling.LabelingManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.kodein.di.Kodein
+import org.kodein.di.KodeinAware
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.eagerSingleton
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.singleton
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
 
 
 class TrezorApplication : Application(), KodeinAware {
-    override val kodein by Kodein.lazy {
+    override val kodein = Kodein.lazy {
         bind<AppDatabase>() with eagerSingleton {
             Room.databaseBuilder(applicationContext, AppDatabase::class.java, DATABASE_NAME)
                     .fallbackToDestructiveMigration()

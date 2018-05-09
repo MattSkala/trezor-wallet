@@ -15,7 +15,7 @@
         android:theme="@style/AppTheme"
         android:name=".TrezorApplication">
 
-        <activity android:name=".ui.MainActivity"
+        <activity android:name=".ui.main.MainActivity"
                   android:theme="@style/AppTheme.NoActionBar"
                   android:launchMode="singleTop">
             <intent-filter>
@@ -30,11 +30,11 @@
 
         <activity android:name=".ui.addressdetail.AddressDetailActivity"
             android:label="@string/address"
-            android:parentActivityName=".ui.MainActivity"/>
+            android:parentActivityName=".ui.main.MainActivity"/>
 
         <activity android:name=".ui.transactiondetail.TransactionDetailActivity"
             android:label="@string/transaction"
-            android:parentActivityName=".ui.MainActivity"/>
+            android:parentActivityName=".ui.main.MainActivity"/>
 
         <activity
             android:name="com.dropbox.core.android.AuthActivity"

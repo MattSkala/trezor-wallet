@@ -1,9 +1,8 @@
 package cz.skala.trezorwallet.ui.transactions
 
+import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
@@ -14,19 +13,22 @@ import cz.skala.trezorwallet.data.item.DateItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.TransactionItem
 import cz.skala.trezorwallet.data.repository.TransactionRepository
+import cz.skala.trezorwallet.ui.BaseViewModel
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
+import org.kodein.di.KodeinAware
+import org.kodein.di.generic.instance
 
 /**
  * A ViewModel for TransactionsFragment.
  */
-class TransactionsViewModel(
-        private val database: AppDatabase,
-        private val coinMarketCapClient: CoinMarketCapClient,
-        private val prefs: PreferenceHelper,
-        private val transactionRepository: TransactionRepository
-) : ViewModel() {
+class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware {
+    val database: AppDatabase by instance()
+    val coinMarketCapClient: CoinMarketCapClient by instance()
+    val prefs: PreferenceHelper by instance()
+    val transactionRepository: TransactionRepository by instance()
+
     val items = MutableLiveData<List<Item>>()
     val refreshing = MutableLiveData<Boolean>()
     val empty = MutableLiveData<Boolean>()
@@ -135,13 +137,5 @@ class TransactionsViewModel(
             }
         }
         return AccountSummary(received, sent)
-    }
-
-    class Factory(val database: AppDatabase, val coinMarketCapClient: CoinMarketCapClient,
-                  val prefs: PreferenceHelper, val transactionRepository: TransactionRepository
-    ) : ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return TransactionsViewModel(database, coinMarketCapClient, prefs, transactionRepository) as T
-        }
     }
 }

@@ -10,9 +10,6 @@ import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
-import com.github.salomonbrys.kodein.KodeinInjector
-import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
-import com.github.salomonbrys.kodein.instance
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.intents.ui.data.CheckAddressRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
@@ -31,27 +28,28 @@ import net.glxn.qrgen.android.QRCode
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.jetbrains.anko.imageBitmap
+import org.kodein.di.KodeinAware
+import org.kodein.di.android.closestKodein
+import org.kodein.di.generic.instance
 
 
 /**
  * An activity for address detail.
  */
-class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector, LabelDialogFragment.EditTextDialogListener {
+class AddressDetailActivity : AppCompatActivity(), KodeinAware, LabelDialogFragment.EditTextDialogListener {
     companion object {
         const val EXTRA_ADDRESS = "address"
     }
 
-    override val injector = KodeinInjector()
-    private val database: AppDatabase by injector.instance()
-    private val labeling: LabelingManager by injector.instance()
-    private val prefs: PreferenceHelper by injector.instance()
+    override val kodein by closestKodein()
+    private val database: AppDatabase by instance()
+    private val labeling: LabelingManager by instance()
+    private val prefs: PreferenceHelper by instance()
 
     private var account: Account? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        initializeInjector()
 
         setContentView(R.layout.activity_address_detail)
 
@@ -97,11 +95,6 @@ class AddressDetailActivity : AppCompatActivity(), AppCompatActivityInjector, La
             }
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    override fun onDestroy() {
-        destroyInjector()
-        super.onDestroy()
     }
 
     override fun onTextChanged(text: String) {

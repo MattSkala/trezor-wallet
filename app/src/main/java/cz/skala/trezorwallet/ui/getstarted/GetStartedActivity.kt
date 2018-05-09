@@ -5,42 +5,39 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
-import com.github.salomonbrys.kodein.*
-import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.intents.ui.data.GenericResult
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
-import cz.skala.trezorwallet.ui.MainActivity
+import cz.skala.trezorwallet.ui.BaseActivity
+import cz.skala.trezorwallet.ui.main.MainActivity
 import kotlinx.android.synthetic.main.activity_get_started.*
+import org.kodein.di.Kodein
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 
 
 /**
  * An introductory activity where account discovery is performed after TREZOR device is connected.
  */
-class GetStartedActivity : AppCompatActivity(), AppCompatActivityInjector {
+class GetStartedActivity : BaseActivity() {
     companion object {
         private const val REQUEST_INITIALIZE = 1
         private const val REQUEST_GET_PUBLIC_KEY = 2
     }
 
-    override val injector = KodeinInjector()
-
-    private val viewModel: GetStartedViewModel by injector.instance()
+    private val viewModel: GetStartedViewModel by instance()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<GetStartedViewModel>() with provider {
-            val factory = GetStartedViewModel.Factory(instance(), instance(), instance(), instance())
-            ViewModelProviders.of(this@GetStartedActivity, factory)[GetStartedViewModel::class.java]
+            ViewModelProviders.of(this@GetStartedActivity)[GetStartedViewModel::class.java]
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        initializeInjector()
 
         setContentView(R.layout.activity_get_started)
 
@@ -70,11 +67,6 @@ class GetStartedActivity : AppCompatActivity(), AppCompatActivityInjector {
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
-    }
-
-    override fun onDestroy() {
-        destroyInjector()
-        super.onDestroy()
     }
 
     private fun initializeConnection() {

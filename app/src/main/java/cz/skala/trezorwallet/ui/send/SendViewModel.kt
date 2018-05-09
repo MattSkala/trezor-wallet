@@ -1,8 +1,7 @@
 package cz.skala.trezorwallet.ui.send
 
+import android.app.Application
 import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
 import com.satoshilabs.trezor.intents.ui.data.SignTxRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import cz.skala.trezorwallet.compose.CoinSelector
@@ -11,30 +10,30 @@ import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.FeeLevel
-import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 import cz.skala.trezorwallet.insight.InsightApiService
+import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
+import org.kodein.di.generic.instance
 import java.io.IOException
 
 /**
  * A ViewModel for SendFragment.
  */
-class SendViewModel(
-        val database: AppDatabase,
-        val prefs: PreferenceHelper,
-        val feeEstimator: FeeEstimator,
-        val insightApi: InsightApiService,
-        val composer: TransactionComposer,
-        val transactionRepository: TransactionRepository
-) : ViewModel() {
+class SendViewModel(app: Application) : BaseViewModel(app) {
     companion object {
         private const val TAG = "SendViewModel"
     }
+
+    val database: AppDatabase by instance()
+    val prefs: PreferenceHelper by instance()
+    val feeEstimator: FeeEstimator by instance()
+    val insightApi: InsightApiService by instance()
+    val composer: TransactionComposer by instance()
 
     private var initialized = false
 
@@ -167,14 +166,5 @@ class SendViewModel(
 
     fun validateFee(fee: Int): Boolean {
         return fee >= FeeEstimator.MINIMUM_FEE
-    }
-
-    class Factory(val database: AppDatabase, val prefs: PreferenceHelper,
-                  val feeEstimator: FeeEstimator, val insightApi: InsightApiService,
-                  val composer: TransactionComposer, val transactionRepository: TransactionRepository) :
-            ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return SendViewModel(database, prefs, feeEstimator, insightApi, composer, transactionRepository) as T
-        }
     }
 }

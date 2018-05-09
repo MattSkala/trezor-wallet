@@ -1,7 +1,8 @@
-package cz.skala.trezorwallet.ui
+package cz.skala.trezorwallet.ui.main
 
 import android.app.Application
-import android.arch.lifecycle.*
+import android.arch.lifecycle.LiveData
+import android.arch.lifecycle.MutableLiveData
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.data.AppDatabase
@@ -9,15 +10,21 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.labeling.LabelingManager
+import cz.skala.trezorwallet.ui.BaseViewModel
+import cz.skala.trezorwallet.ui.SingleLiveEvent
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
+import org.kodein.di.generic.instance
 
 /**
  * A ViewModel for MainActivity.
  */
-class MainViewModel(app: Application, val database: AppDatabase, val labeling: LabelingManager,
-                    val prefs: PreferenceHelper) : AndroidViewModel(app) {
+class MainViewModel(app: Application) : BaseViewModel(app) {
+    val database: AppDatabase by instance()
+    val labeling: LabelingManager by instance()
+    val prefs: PreferenceHelper by instance()
+
     val accounts: LiveData<List<Account>> by lazy {
         database.accountDao().getAllLiveData()
     }
@@ -118,12 +125,5 @@ class MainViewModel(app: Application, val database: AppDatabase, val labeling: L
             database.addressDao().deleteAll()
             prefs.clear()
         }.await()
-    }
-
-    class Factory(val app: Application, val database: AppDatabase, val labeling: LabelingManager,
-                  val prefs: PreferenceHelper) : ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return MainViewModel(app, database, labeling, prefs) as T
-        }
     }
 }

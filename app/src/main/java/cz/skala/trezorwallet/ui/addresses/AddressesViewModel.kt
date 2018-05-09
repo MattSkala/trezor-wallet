@@ -1,9 +1,8 @@
 package cz.skala.trezorwallet.ui.addresses
 
+import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.Address
@@ -11,14 +10,18 @@ import cz.skala.trezorwallet.data.item.AddressItem
 import cz.skala.trezorwallet.data.item.ButtonItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.SectionItem
+import cz.skala.trezorwallet.ui.BaseViewModel
+import org.kodein.di.generic.instance
 
 /**
  * A ViewModel for AddressesFragment.
  */
-class AddressesViewModel(val database: AppDatabase) : ViewModel() {
+class AddressesViewModel(app: Application) : BaseViewModel(app) {
     companion object {
         private const val FRESH_ADDRESSES_LIMIT = 20
     }
+
+    val database: AppDatabase by instance()
 
     val items = MutableLiveData<List<Item>>()
 
@@ -95,11 +98,5 @@ class AddressesViewModel(val database: AppDatabase) : ViewModel() {
             }
         }
         return lastUsedIndex + 1
-    }
-
-    class Factory(val database: AppDatabase) : ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return AddressesViewModel(database) as T
-        }
     }
 }

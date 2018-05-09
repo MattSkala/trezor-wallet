@@ -1,5 +1,6 @@
 package cz.skala.trezorwallet.ui.getstarted
 
+import android.app.Application
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import com.satoshilabs.trezor.intents.ui.data.GenericResult
@@ -11,13 +12,18 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
+import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
+import org.kodein.di.generic.instance
 
-class GetStartedViewModel(val database: AppDatabase, val accountDiscovery: AccountDiscoveryManager,
-                          val transactionRepository: TransactionRepository, val prefs: PreferenceHelper) : ViewModel() {
+class GetStartedViewModel(app: Application) : BaseViewModel(app) {
+    val database: AppDatabase by instance()
+    val accountDiscovery: AccountDiscoveryManager by instance()
+    val transactionRepository: TransactionRepository by instance()
+    val prefs: PreferenceHelper by instance()
 
     val onPublicKeyRequest = SingleLiveEvent<PublicKeyRequest>()
     val onAccountDiscoveryFinish = SingleLiveEvent<Nothing>()
@@ -69,12 +75,4 @@ class GetStartedViewModel(val database: AppDatabase, val accountDiscovery: Accou
     }
 
     class PublicKeyRequest(val i: Int, val legacy: Boolean)
-
-    class Factory(val database: AppDatabase, val accountDiscovery: AccountDiscoveryManager,
-                  val transactionRepository: TransactionRepository, val prefs: PreferenceHelper) :
-            ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return GetStartedViewModel(database, accountDiscovery, transactionRepository, prefs) as T
-        }
-    }
 }

@@ -1,4 +1,4 @@
-package cz.skala.trezorwallet.ui
+package cz.skala.trezorwallet.ui.main
 
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
@@ -10,6 +10,7 @@ import cz.skala.trezorwallet.data.item.AccountItem
 import cz.skala.trezorwallet.data.item.AccountSectionItem
 import cz.skala.trezorwallet.data.item.AddAccountItem
 import cz.skala.trezorwallet.data.item.Item
+import cz.skala.trezorwallet.ui.formatBtcValue
 import kotlinx.android.synthetic.main.item_account.view.*
 import kotlinx.android.synthetic.main.item_account_add.view.*
 import java.lang.IllegalArgumentException

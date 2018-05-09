@@ -1,4 +1,4 @@
-package cz.skala.trezorwallet.ui
+package cz.skala.trezorwallet.ui.main
 
 import android.app.Activity
 import android.arch.lifecycle.Observer
@@ -7,15 +7,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v4.view.GravityCompat
-import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import com.dropbox.core.android.Auth
-import com.github.salomonbrys.kodein.*
-import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
@@ -26,6 +23,8 @@ import cz.skala.trezorwallet.data.item.AccountSectionItem
 import cz.skala.trezorwallet.data.item.AddAccountItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.labeling.LabelingManager
+import cz.skala.trezorwallet.ui.BaseActivity
+import cz.skala.trezorwallet.ui.LabelDialogFragment
 import cz.skala.trezorwallet.ui.addresses.AddressesFragment
 import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.send.SendFragment
@@ -33,10 +32,13 @@ import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.bundleOf
 import org.jetbrains.anko.defaultSharedPreferences
+import org.kodein.di.Kodein
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 
 
-class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
-        LabelDialogFragment.EditTextDialogListener {
+class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener {
     companion object {
         private const val TAG = "MainActivity"
 
@@ -46,8 +48,7 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
         private const val REQUEST_ENABLE_LABELING = 3
     }
 
-    override val injector = KodeinInjector()
-    private val viewModel: MainViewModel by injector.instance()
+    private val viewModel: MainViewModel by instance()
 
     private val accountsAdapter = AccountsAdapter()
 
@@ -55,13 +56,11 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<MainViewModel>() with provider {
-            val factory = MainViewModel.Factory(application, instance(), instance(), instance())
-            ViewModelProviders.of(this@MainActivity, factory)[MainViewModel::class.java]
+            ViewModelProviders.of(this@MainActivity)[MainViewModel::class.java]
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        initializeInjector()
         super.onCreate(savedInstanceState)
 
         if (!defaultSharedPreferences.getBoolean(TrezorApplication.PREF_INITIALIZED, false)) {
@@ -154,11 +153,6 @@ class MainActivity : AppCompatActivity(), AppCompatActivityInjector,
             }
             true
         }
-    }
-
-    override fun onDestroy() {
-        destroyInjector()
-        super.onDestroy()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

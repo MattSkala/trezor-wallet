@@ -5,23 +5,25 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import com.github.salomonbrys.kodein.*
-import com.github.salomonbrys.kodein.android.AppCompatActivityInjector
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.entity.Transaction
 import cz.skala.trezorwallet.data.entity.TransactionInput
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.labeling.LabelingManager
+import cz.skala.trezorwallet.ui.BaseActivity
 import cz.skala.trezorwallet.ui.LabelDialogFragment
 import cz.skala.trezorwallet.ui.formatBtcValue
 import kotlinx.android.synthetic.main.activity_transaction_detail.*
 import kotlinx.android.synthetic.main.item_transaction_input.view.*
 import org.jetbrains.anko.bundleOf
+import org.kodein.di.Kodein
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,25 +31,22 @@ import java.util.*
 /**
  * A transaction detail activity.
  */
-class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector, LabelDialogFragment.EditTextDialogListener {
+class TransactionDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener {
     companion object {
         const val EXTRA_ACCOUNT_ID = "account_id"
         const val EXTRA_TXID = "txid"
     }
 
-    override val injector = KodeinInjector()
-    private val labeling: LabelingManager by injector.instance()
-    private val viewModel: TransactionDetailViewModel by injector.instance()
+    private val labeling: LabelingManager by instance()
+    private val viewModel: TransactionDetailViewModel by instance()
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<TransactionDetailViewModel>() with provider {
-            val factory = TransactionDetailViewModel.Factory(instance(), instance())
-            ViewModelProviders.of(this@TransactionDetailActivity, factory)[TransactionDetailViewModel::class.java]
+            ViewModelProviders.of(this@TransactionDetailActivity)[TransactionDetailViewModel::class.java]
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        initializeInjector()
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_transaction_detail)
@@ -77,11 +76,6 @@ class TransactionDetailActivity : AppCompatActivity(), AppCompatActivityInjector
             }
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    override fun onDestroy() {
-        destroyInjector()
-        super.onDestroy()
     }
 
     override fun onTextChanged(text: String) {

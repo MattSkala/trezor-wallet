@@ -7,7 +7,6 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -17,24 +16,27 @@ import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import com.github.salomonbrys.kodein.*
-import com.github.salomonbrys.kodein.android.SupportFragmentInjector
 import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.BitcoinURI
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.exception.InvalidBitcoinURIException
-import cz.skala.trezorwallet.ui.MainActivity
+import cz.skala.trezorwallet.ui.BaseFragment
+import cz.skala.trezorwallet.ui.main.MainActivity
 import cz.skala.trezorwallet.ui.btcToSat
 import kotlinx.android.synthetic.main.fragment_send.*
+import org.kodein.di.Kodein
+import org.kodein.di.generic.bind
+import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 import java.util.*
 
 
 /**
  * A fragment for composing a transaction.
  */
-class SendFragment : Fragment(), SupportFragmentInjector {
+class SendFragment : BaseFragment() {
     companion object {
         const val ARG_ACCOUNT_ID = "account_id"
 
@@ -49,24 +51,20 @@ class SendFragment : Fragment(), SupportFragmentInjector {
         private const val FEE_SPINNER_POSITION_CUSTOM = 4
     }
 
-    override val injector = KodeinInjector()
-    private val prefs: PreferenceHelper by injector.instance()
-    private val viewModel: SendViewModel by injector.instance()
+    private val prefs: PreferenceHelper by instance()
+    private val viewModel: SendViewModel by instance()
 
     private var textWatcherEnabled = true
     private var progressDialog: ProgressDialog? = null
 
     override fun provideOverridingModule() = Kodein.Module {
         bind<SendViewModel>() with provider {
-            val factory = SendViewModel.Factory(instance(), instance(), instance(), instance(), instance(), instance())
-            ViewModelProviders.of(this@SendFragment, factory)[SendViewModel::class.java]
+            ViewModelProviders.of(this@SendFragment)[SendViewModel::class.java]
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        initializeInjector()
 
         viewModel.start()
 
@@ -197,11 +195,6 @@ class SendFragment : Fragment(), SupportFragmentInjector {
             }
             else -> super.onActivityResult(requestCode, resultCode, data)
         }
-    }
-
-    override fun onDestroy() {
-        destroyInjector()
-        super.onDestroy()
     }
 
     private fun initFeeSpinner() {
