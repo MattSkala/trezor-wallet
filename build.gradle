@@ -1,14 +1,14 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.2.21'
+    ext.kotlin_version = '1.2.31'
     ext.anko_version='0.10.1'
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.1.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath files('trezor-android/libs/gradle-witness.jar')
 
@@ -25,9 +25,8 @@ allprojects {
     }
 
     project.ext {
-        support_version = "27.0.1"
-        architecture_components_version = "1.1.0"
-        buildToolsVersion = "26.0.2"
+        support_version = "27.1.1"
+        architecture_components_version = "1.1.1"
         sdk = 27
         minsdk = 21
     }
