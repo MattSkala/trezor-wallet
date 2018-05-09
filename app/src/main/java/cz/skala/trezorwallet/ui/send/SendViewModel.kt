@@ -156,8 +156,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun validateAddress(address: String): Boolean {
-        // TODO
-        return true
+        return address.length in 26..35 && (address.startsWith("1") || address.startsWith("3"))
     }
 
     fun validateAmount(amount: Double): Boolean {
