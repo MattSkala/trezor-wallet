@@ -1,8 +1,8 @@
 package cz.skala.trezorwallet.crypto
 
-import org.spongycastle.crypto.ec.CustomNamedCurves
-import org.spongycastle.math.ec.ECPoint
-import org.spongycastle.math.ec.FixedPointCombMultiplier
+import org.bouncycastle.crypto.ec.CustomNamedCurves
+import org.bouncycastle.math.ec.ECPoint
+import org.bouncycastle.math.ec.FixedPointCombMultiplier
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.security.InvalidKeyException

@@ -1,11 +1,12 @@
 package cz.skala.trezorwallet.crypto
 
-import org.spongycastle.crypto.digests.RIPEMD160Digest
-import org.spongycastle.crypto.digests.SHA256Digest
-import org.spongycastle.crypto.engines.AESEngine
-import org.spongycastle.crypto.modes.GCMBlockCipher
-import org.spongycastle.crypto.params.AEADParameters
-import org.spongycastle.crypto.params.KeyParameter
+
+import org.bouncycastle.crypto.digests.RIPEMD160Digest
+import org.bouncycastle.crypto.digests.SHA256Digest
+import org.bouncycastle.crypto.engines.AESEngine
+import org.bouncycastle.crypto.modes.GCMBlockCipher
+import org.bouncycastle.crypto.params.AEADParameters
+import org.bouncycastle.crypto.params.KeyParameter
 import java.security.SecureRandom
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec

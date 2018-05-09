@@ -10,7 +10,7 @@
 ## Used Libraries
 [trezor-android](https://github.com/MattSkala/trezor-android) – TREZOR communication
 
-[Spongy Castle](https://rtyley.github.io/spongycastle/) – cryptography API
+[Bouncy Castle](https://www.bouncycastle.org/) – cryptography API
 
 [QRGen](https://github.com/kenglxn/QRGen) – QR code generation
 
