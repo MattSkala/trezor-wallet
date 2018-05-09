@@ -1,10 +1,9 @@
 package cz.skala.trezorwallet.crypto
 
 import com.satoshilabs.trezor.intents.toHex
-import junit.framework.Assert
+import org.junit.Assert
 import org.junit.Test
 import java.util.*
-
 
 
 class UtilsTest {

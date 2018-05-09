@@ -1,7 +1,7 @@
 package cz.skala.trezorwallet.compose
 
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
-import junit.framework.Assert
+import org.junit.Assert
 import org.junit.Test
 
 class FeeUtilsTest {

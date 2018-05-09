@@ -3,7 +3,7 @@ package cz.skala.trezorwallet.compose
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
-import junit.framework.Assert
+import org.junit.Assert
 import org.junit.Test
 
 class FifoCoinSelectorTest {

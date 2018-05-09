@@ -4,6 +4,13 @@
 - Create a transaction, sign it with TREZOR and broadcast to the network
 - Account, address and transaction labeling compatible with SLIP-0015 standard
 
+## Build
+Install the debug build:
+`./gradlew installDebug`
+
+Run unit tests:
+`./gradlew test`
+
 ## Screenshots
 <img src="docs/screen_accounts.png" width="200"> <img src="docs/screen_transactions.png" width="200"> <img src="docs/screen_addresses.png" width="200"> <img src="docs/screen_send.png" width="200">
 

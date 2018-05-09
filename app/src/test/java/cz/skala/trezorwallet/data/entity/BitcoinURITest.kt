@@ -1,7 +1,7 @@
 package cz.skala.trezorwallet.data.entity
 
 import cz.skala.trezorwallet.exception.InvalidBitcoinURIException
-import junit.framework.Assert
+import org.junit.Assert
 import org.junit.Test
 
 class BitcoinURITest {
@@ -25,7 +25,7 @@ class BitcoinURITest {
         val message = "Donation%20for%20project%20xyz"
         val uri = BitcoinURI.parse("bitcoin:$address?amount=$amount&label=$label&message=$message")
         Assert.assertEquals(address, uri.address)
-        Assert.assertEquals(50.0, uri.amount)
+        Assert.assertEquals(50.0, uri.amount, 0.0)
         Assert.assertEquals(label, uri.label)
         Assert.assertEquals("Donation for project xyz", uri.message)
     }

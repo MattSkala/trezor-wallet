@@ -1,7 +1,7 @@
 package cz.skala.trezorwallet.crypto
 
 import com.satoshilabs.trezor.intents.hexToBytes
-import junit.framework.Assert
+import org.junit.Assert
 import org.junit.Test
 
 class Base58Test {
