@@ -156,7 +156,15 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun validateAddress(address: String): Boolean {
+        return validateBase58Address(address) || validateBech32Address(address);
+    }
+
+    private fun validateBase58Address(address: String): Boolean {
         return address.length in 26..35 && (address.startsWith("1") || address.startsWith("3"))
+    }
+
+    private fun validateBech32Address(address: String): Boolean {
+        return address.length in 14..72 && address.startsWith("bc1")
     }
 
     fun validateAmount(amount: Double): Boolean {
