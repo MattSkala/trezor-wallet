@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">TREZOR Wallet</string>
 
+    <string name="get_started">Get Started!</string>
+    <string name="connect_trezor">Connect your TREZOR device</string>
+    <string name="btn_continue">Continue</string>
     <string name="tx_unconfirmed">Unconfirmed</string>
     <string name="x_btc">%s BTC</string>
     <string name="total_received">Total Received: %s</string>

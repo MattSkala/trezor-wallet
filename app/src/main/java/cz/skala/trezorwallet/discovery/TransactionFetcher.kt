@@ -2,8 +2,10 @@ package cz.skala.trezorwallet.discovery
 
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import cz.skala.trezorwallet.data.entity.Account
+import cz.skala.trezorwallet.exception.ApiException
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.insight.response.Tx
+import java.io.IOException
 
 /**
  * A helper class for fetching transactions from Insight API.
@@ -65,13 +67,18 @@ class TransactionFetcher(val insightApi: InsightApiService) {
         return txs
     }
 
+    @Throws(ApiException::class)
     fun fetchTransactionsPage(addresses: List<String>, from: Int, to: Int): List<Tx> {
-        val response = insightApi.getAddrsTxs(addresses.joinToString(","), from, to).execute()
-        val body = response.body()
-        if (response.isSuccessful && body != null) {
-            return body.items
-        } else {
-            throw Exception("An error occured while fetching transactions")
+        try {
+            val response = insightApi.getAddrsTxs(addresses.joinToString(","), from, to).execute()
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                return body.items
+            } else {
+                throw ApiException("An error while fetching transactions")
+            }
+        } catch (e: IOException) {
+            throw ApiException("An error while communicating with server", e)
         }
     }
 

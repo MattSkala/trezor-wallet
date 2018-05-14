@@ -1,8 +1,8 @@
 package cz.skala.trezorwallet.ui.getstarted
 
 import android.app.Application
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
+import android.arch.lifecycle.MutableLiveData
+import android.widget.Toast
 import com.satoshilabs.trezor.intents.ui.data.GenericResult
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
@@ -12,6 +12,7 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
+import cz.skala.trezorwallet.exception.ApiException
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import kotlinx.coroutines.experimental.android.UI
@@ -19,12 +20,13 @@ import kotlinx.coroutines.experimental.launch
 import org.jetbrains.anko.coroutines.experimental.bg
 import org.kodein.di.generic.instance
 
-class GetStartedViewModel(app: Application) : BaseViewModel(app) {
+class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
     val database: AppDatabase by instance()
     val accountDiscovery: AccountDiscoveryManager by instance()
     val transactionRepository: TransactionRepository by instance()
     val prefs: PreferenceHelper by instance()
 
+    val loading = MutableLiveData<Boolean>()
     val onPublicKeyRequest = SingleLiveEvent<PublicKeyRequest>()
     val onAccountDiscoveryFinish = SingleLiveEvent<Nothing>()
 
@@ -33,6 +35,7 @@ class GetStartedViewModel(app: Application) : BaseViewModel(app) {
     fun startAccountDiscovery() {
         legacy = false
         onPublicKeyRequest.value = PublicKeyRequest(0, false)
+        loading.value = true
     }
 
     fun onPublicKeyResult(result: GenericResult) {
@@ -43,27 +46,37 @@ class GetStartedViewModel(app: Application) : BaseViewModel(app) {
         scanAccount(message.node, message.xpub)
     }
 
+    fun cancel() {
+        loading.value = false
+    }
+
     private fun scanAccount(node: TrezorType.HDNodeType, xpub: String) {
         launch(UI) {
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
 
-            val hasTransactions = bg {
-                val hasTransactions = accountDiscovery.scanAccount(node, legacy)
-                if (hasTransactions || (!legacy && index == 0)) {
-                    val account = saveAccount(node, xpub, legacy)
-                    transactionRepository.refresh(account.id)
-                }
-                hasTransactions
-            }.await()
+            try {
+                val hasTransactions = bg {
+                    val hasTransactions = accountDiscovery.scanAccount(node, legacy)
+                    if (hasTransactions || (!legacy && index == 0)) {
+                        val account = saveAccount(node, xpub, legacy)
+                        transactionRepository.refresh(account.id)
+                    }
+                    hasTransactions
+                }.await()
 
-            if (hasTransactions) {
-                onPublicKeyRequest.value = PublicKeyRequest(index + 1, legacy)
-            } else if (!legacy) {
-                legacy = true
-                onPublicKeyRequest.value = PublicKeyRequest(0, true)
-            } else {
-                prefs.initialized = true
-                onAccountDiscoveryFinish.call()
+                if (hasTransactions) {
+                    onPublicKeyRequest.value = PublicKeyRequest(index + 1, legacy)
+                } else if (!legacy) {
+                    legacy = true
+                    onPublicKeyRequest.value = PublicKeyRequest(0, true)
+                } else {
+                    prefs.initialized = true
+                    onAccountDiscoveryFinish.call()
+                }
+            } catch (e: ApiException) {
+                e.printStackTrace()
+                Toast.makeText(app, e.message, Toast.LENGTH_SHORT).show()
+                loading.value = false
             }
         }
     }
