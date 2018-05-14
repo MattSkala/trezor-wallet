@@ -5,6 +5,7 @@ import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
+import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
@@ -30,6 +31,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     val selectedAccount = MutableLiveData<Account>()
+    var selectedTab = R.id.item_transactions
     val labelingState = MutableLiveData<LabelingState>()
 
     val onTrezorRequest = SingleLiveEvent<TrezorRequest>()
@@ -56,6 +58,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
 
     fun setSelectedAccount(account: Account) {
         if (selectedAccount.value != account) {
+            selectedTab = R.id.item_transactions
             selectedAccount.value = account
         }
     }

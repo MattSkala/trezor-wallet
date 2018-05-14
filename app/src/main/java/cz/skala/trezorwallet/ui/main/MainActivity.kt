@@ -36,6 +36,7 @@ import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.provider
+import kotlin.reflect.KClass
 
 
 class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener {
@@ -100,13 +101,6 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
                     if (selectedAccount == null || !it.contains(selectedAccount)) {
                         val newSelectedAccount = it.first()
                         viewModel.setSelectedAccount(newSelectedAccount)
-                        accountsAdapter.selectedAccount = newSelectedAccount
-                        accountsAdapter.notifyDataSetChanged()
-                    }
-
-                    // Update selected account title
-                    if (selectedAccount != null) {
-                        supportActionBar?.title = selectedAccount.getDisplayLabel(resources)
                     }
                 } else {
                     forgetDevice()
@@ -116,7 +110,10 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
 
         viewModel.selectedAccount.observe(this, Observer {
             if (it != null) {
-                showSelectedAccount(it)
+                accountsAdapter.selectedAccount = it
+                accountsAdapter.notifyDataSetChanged()
+                navigation.selectedItemId = viewModel.selectedTab
+                supportActionBar?.title = it.getDisplayLabel(resources)
             }
         })
 
@@ -144,13 +141,11 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
         })
 
         navigation.setOnNavigationItemSelectedListener {
-            val account = viewModel.selectedAccount.value!!
-            val accountId = account.id
-            when (it.itemId) {
-                R.id.item_transactions -> showTransactions(accountId)
-                R.id.item_receive -> showAddresses(accountId)
-                R.id.item_send -> showSend(accountId)
+            val account = viewModel.selectedAccount.value
+            if (account != null) {
+                handleNavigationItemSelected(it.itemId, account)
             }
+            viewModel.selectedTab = it.itemId
             true
         }
     }
@@ -204,6 +199,8 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
     override fun onResume() {
         super.onResume()
 
+        navigation.selectedItemId = viewModel.selectedTab
+
         if (dropboxAuthRequested) {
             val dropboxToken = Auth.getOAuth2Token()
             if (dropboxToken != null) {
@@ -225,6 +222,15 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
         val actionbar = supportActionBar
         actionbar!!.setDisplayHomeAsUpEnabled(true)
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu_white_24dp)
+    }
+
+    private fun handleNavigationItemSelected(itemId: Int, account: Account) {
+        val accountId = account.id
+        when (itemId) {
+            R.id.item_transactions -> showTransactions(accountId)
+            R.id.item_receive -> showAddresses(accountId)
+            R.id.item_send -> showSend(accountId)
+        }
     }
 
     private fun forgetDevice() {
@@ -259,43 +265,29 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
     }
 
     fun showTransactions(accountId: String) {
-        val f = TransactionsFragment()
-        val args = Bundle()
-        args.putString(TransactionsFragment.ARG_ACCOUNT_ID, accountId)
-        f.arguments = args
-        replaceFragment(f)
-        navigation.selectedItemId = 0
+        showFragment(TransactionsFragment::class, accountId)
     }
 
     private fun showAddresses(accountId: String) {
-        val f = AddressesFragment()
-        val args = Bundle()
-        args.putString(AddressesFragment.ARG_ACCOUNT_ID, accountId)
-        f.arguments = args
-        replaceFragment(f)
+        showFragment(AddressesFragment::class, accountId)
     }
 
     private fun showSend(accountId: String) {
-        val f = SendFragment()
-        val args = Bundle()
-        args.putString(SendFragment.ARG_ACCOUNT_ID, accountId)
-        f.arguments = args
-        replaceFragment(f)
+        showFragment(SendFragment::class, accountId)
     }
 
-    private fun showSelectedAccount(account: Account) {
-        showTransactions(account.id)
-
-        if (navigation.selectedItemId != R.id.item_transactions) {
-            navigation.selectedItemId = R.id.item_transactions
+    private fun showFragment(klass: KClass<out Fragment>, accountId: String) {
+        val tag = klass.java.name + "_" + accountId
+        var f = supportFragmentManager.findFragmentByTag(tag)
+        if (f == null) {
+            f = klass.java.newInstance()
+            val args = Bundle()
+            args.putString("account_id", accountId)
+            f.arguments = args
         }
 
-        supportActionBar?.title = account.getDisplayLabel(resources)
-    }
-
-    private fun replaceFragment(f: Fragment) {
         val ft = supportFragmentManager.beginTransaction()
-        ft.replace(R.id.content, f)
+        ft.replace(R.id.content, f, tag)
         ft.commit()
     }
 
