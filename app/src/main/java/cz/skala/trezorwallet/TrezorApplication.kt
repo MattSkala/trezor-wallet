@@ -94,7 +94,7 @@ class TrezorApplication : Application(), KodeinAware {
         const val PREF_INITIALIZED = "initialized"
 
         const val DATABASE_NAME = "trezor-wallet"
-        const val INSIGHT_API_URL = "https://btc-bitcore1.trezor.io/api/"
+        const val INSIGHT_API_URL = "https://insight.bitpay.com/api/"
     }
 
     override fun onCreate() {
