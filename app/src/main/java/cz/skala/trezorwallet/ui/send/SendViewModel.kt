@@ -11,6 +11,7 @@ import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.exception.InsufficientFundsException
+import cz.skala.trezorwallet.blockbook.BlockbookApiService
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
@@ -33,7 +34,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     val database: AppDatabase by instance()
     val prefs: PreferenceHelper by instance()
     val feeEstimator: FeeEstimator by instance()
-    val insightApi: InsightApiService by instance()
+    val blockbookApi: BlockbookApiService by instance()
     val composer: TransactionComposer by instance()
 
     private var initialized = false
@@ -97,14 +98,14 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
 
     private suspend fun sendTx(rawtx: String): String {
         return GlobalScope.async(Dispatchers.Default) {
-            val response = insightApi.sendTx(rawtx).execute()
+            val response = blockbookApi.sendTx(rawtx).execute()
             val body = response.body()
 
             if (!response.isSuccessful || body == null) {
                 throw Exception("Sending transaction failed")
             }
 
-            body.txid
+            body.result
         }.await()
     }
 

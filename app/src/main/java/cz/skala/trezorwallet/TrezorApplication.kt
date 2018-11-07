@@ -13,6 +13,7 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.discovery.TransactionFetcher
+import cz.skala.trezorwallet.blockbook.BlockbookApiService
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.labeling.LabelingManager
 import okhttp3.OkHttpClient
@@ -51,6 +52,23 @@ class TrezorApplication : Application(), KodeinAware {
                     .build()
 
             retrofit.create(InsightApiService::class.java)
+        }
+
+        bind<BlockbookApiService>() with eagerSingleton {
+            val httpClient = OkHttpClient.Builder()
+
+            // logging interceptor
+            val logging = HttpLoggingInterceptor()
+            logging.level = HttpLoggingInterceptor.Level.BODY
+            httpClient.addInterceptor(logging)
+
+            val retrofit = Retrofit.Builder()
+                    .baseUrl(BITCOINBOOK_API_URL)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .client(httpClient.build())
+                    .build()
+
+            retrofit.create(BlockbookApiService::class.java)
         }
 
         bind<AccountDiscoveryManager>() with singleton {
@@ -93,6 +111,7 @@ class TrezorApplication : Application(), KodeinAware {
     companion object {
         const val DATABASE_NAME = "trezor-wallet"
         const val INSIGHT_API_URL = "https://insight.bitpay.com/api/"
+        const val BITCOINBOOK_API_URL = "https://btc1.trezor.io/api/"
     }
 
     override fun onCreate() {
