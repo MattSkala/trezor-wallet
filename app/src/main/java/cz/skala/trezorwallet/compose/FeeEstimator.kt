@@ -4,7 +4,9 @@ import android.util.Log
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import java.io.IOException
 
 /**
@@ -29,7 +31,7 @@ class FeeEstimator(
      */
     @Throws(IOException::class)
     suspend fun fetchRecommendedFees(): Map<FeeLevel, Int>? {
-        return bg {
+        return GlobalScope.async(Dispatchers.Default) {
             // Block numbers separated by a comma
             val feeLevelsQuery = FeeLevel.values()
                     .filter { !it.halved }

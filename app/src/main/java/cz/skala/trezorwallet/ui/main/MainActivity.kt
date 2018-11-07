@@ -17,6 +17,7 @@ import com.satoshilabs.trezor.intents.ui.activity.TrezorActivity
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import cz.skala.trezorwallet.R
 import cz.skala.trezorwallet.TrezorApplication
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.item.AccountItem
 import cz.skala.trezorwallet.data.item.AccountSectionItem
@@ -30,8 +31,6 @@ import cz.skala.trezorwallet.ui.getstarted.GetStartedActivity
 import cz.skala.trezorwallet.ui.send.SendFragment
 import cz.skala.trezorwallet.ui.transactions.TransactionsFragment
 import kotlinx.android.synthetic.main.activity_main.*
-import org.jetbrains.anko.bundleOf
-import org.jetbrains.anko.defaultSharedPreferences
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
@@ -51,6 +50,8 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
 
     private val viewModel: MainViewModel by instance()
 
+    private val prefs: PreferenceHelper by instance()
+
     private val accountsAdapter = AccountsAdapter()
 
     private var dropboxAuthRequested = false
@@ -64,7 +65,7 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (!defaultSharedPreferences.getBoolean(TrezorApplication.PREF_INITIALIZED, false)) {
+        if (!prefs.initialized) {
             startGetStartedActivity()
             return
         }
@@ -276,16 +277,18 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
         showFragment(SendFragment::class, accountId)
     }
 
+    private fun createFragment(klass: KClass<out Fragment>, accountId: String): Fragment {
+        val f = klass.java.newInstance()
+        val args = Bundle()
+        args.putString("account_id", accountId)
+        f.arguments = args
+        return f
+    }
+
     private fun showFragment(klass: KClass<out Fragment>, accountId: String) {
         val tag = klass.java.name + "_" + accountId
-        var f = supportFragmentManager.findFragmentByTag(tag)
-        if (f == null) {
-            f = klass.java.newInstance()
-            val args = Bundle()
-            args.putString("account_id", accountId)
-            f.arguments = args
-        }
-
+        val f = supportFragmentManager.findFragmentByTag(tag)
+                ?: createFragment(klass, accountId)
         val ft = supportFragmentManager.beginTransaction()
         ft.replace(R.id.content, f, tag)
         ft.commit()
@@ -306,10 +309,10 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
         val fragment = LabelDialogFragment()
         val title = resources.getString(R.string.account_label)
         val label = viewModel.selectedAccount.value!!.getDisplayLabel(resources)
-        fragment.arguments = bundleOf(
-                LabelDialogFragment.ARG_TITLE to title,
-                LabelDialogFragment.ARG_TEXT to label
-        )
+        val args = Bundle()
+        args.putString(LabelDialogFragment.ARG_TITLE, title)
+        args.putString(LabelDialogFragment.ARG_TEXT, label)
+        fragment.arguments = args
         fragment.show(supportFragmentManager, "dialog")
     }
 }

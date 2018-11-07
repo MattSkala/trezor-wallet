@@ -21,7 +21,10 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
 import cz.skala.trezorwallet.data.entity.TransactionOutput
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -117,7 +120,7 @@ class LabelingManager(
      * Enables labeling by setting the master key.
      */
     suspend fun enableLabeling(masterKey: ByteArray) {
-        bg {
+        GlobalScope.async(Dispatchers.Default) {
             setMasterKey(masterKey)
             downloadAccountsMetadata()
         }.await()
@@ -127,7 +130,7 @@ class LabelingManager(
      * Deletes all metadata files, clears labels in the database and removes the master key.
      */
     suspend fun disableLabeling() {
-        bg {
+        GlobalScope.async(Dispatchers.Default) {
             removeMetadataFiles()
             clearDatabaseLabels()
             setMasterKey(null)
@@ -143,7 +146,7 @@ class LabelingManager(
         val savedLabel = if (label != defaultLabel) label else null
         account.label = savedLabel
 
-        bg {
+        GlobalScope.async(Dispatchers.Default) {
             database.accountDao().insert(account)
 
             val metadata = loadMetadata(account)
@@ -161,7 +164,7 @@ class LabelingManager(
     suspend fun setAddressLabel(address: Address, label: String) {
         address.label = label
 
-        bg {
+        GlobalScope.async(Dispatchers.Default) {
             database.addressDao().insert(address)
 
             val account = database.accountDao().getById(address.account)
@@ -180,7 +183,7 @@ class LabelingManager(
     suspend fun setOutputLabel(output: TransactionOutput, label: String) {
         output.label = label
 
-        bg {
+        GlobalScope.async(Dispatchers.Default) {
             database.transactionDao().insert(output)
 
             val account = database.accountDao().getById(output.account)
@@ -336,12 +339,18 @@ class LabelingManager(
             account.label = metadata.accountLabel
             database.accountDao().insert(account)
 
-            metadata.addressLabels.forEach { address, label ->
+            metadata.addressLabels.forEach { entry ->
+                val address = entry.key
+                val label = entry.value
                 database.addressDao().updateLabel(account.id, address, label)
             }
 
-            metadata.outputLabels.forEach { txid, outputs ->
-                outputs?.forEach { index, label ->
+            metadata.outputLabels.forEach { entry ->
+                val txid = entry.key
+                val outputs = entry.value
+                outputs?.forEach { outputEntry ->
+                    val index = outputEntry.key
+                    val label = outputEntry.value
                     database.transactionDao().updateLabel(account.id, txid, index.toInt(), label)
                 }
             }

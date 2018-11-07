@@ -14,9 +14,10 @@ import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.TransactionItem
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.ui.BaseViewModel
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.generic.instance
 
@@ -66,10 +67,10 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     }
 
     fun fetchTransactions() {
-        launch(UI) {
+        GlobalScope.launch(Dispatchers.Main) {
             refreshing.value = true
             try {
-                bg {
+                async(Dispatchers.Default) {
                     transactionRepository.refresh(accountId)
                 }.await()
             } catch (e: Exception) {
@@ -80,8 +81,8 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     }
 
     fun removeAccount() {
-        launch(UI) {
-            bg {
+        GlobalScope.launch(Dispatchers.Main) {
+            async(Dispatchers.Default) {
                 database.accountDao().deleteById(accountId)
             }.await()
         }
@@ -91,7 +92,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         transactionsLiveData.observeForever(transactionsObserver)
     }
 
-    private fun fetchRate() = launch(UI) {
+    private fun fetchRate() = GlobalScope.launch(Dispatchers.Main) {
         try {
             prefs.rate = coinMarketCapClient.fetchRate(prefs.currencyCode).toFloat()
             updateItems()

@@ -22,12 +22,11 @@ import cz.skala.trezorwallet.data.entity.Address
 import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.LabelDialogFragment
 import kotlinx.android.synthetic.main.activity_address_detail.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import net.glxn.qrgen.android.QRCode
-import org.jetbrains.anko.bundleOf
-import org.jetbrains.anko.coroutines.experimental.bg
-import org.jetbrains.anko.imageBitmap
 import org.kodein.di.KodeinAware
 import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
@@ -99,7 +98,7 @@ class AddressDetailActivity : AppCompatActivity(), KodeinAware, LabelDialogFragm
 
     override fun onTextChanged(text: String) {
         val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
-        launch(UI) {
+        GlobalScope.launch(Dispatchers.Main) {
             labeling.setAddressLabel(address, text)
             updateActionBarTitle(address)
         }
@@ -111,8 +110,8 @@ class AddressDetailActivity : AppCompatActivity(), KodeinAware, LabelDialogFragm
     }
 
     private fun loadAccount(address: Address) {
-        launch(UI) {
-            val acc = bg {
+        GlobalScope.launch(Dispatchers.Main) {
+            val acc = GlobalScope.async(Dispatchers.Default) {
                 database.accountDao().getById(address.account)
             }.await()
             account = acc
@@ -133,7 +132,7 @@ class AddressDetailActivity : AppCompatActivity(), KodeinAware, LabelDialogFragm
         val qrCodeBitmap = QRCode.from("bitcoin:" + address.address)
                 .withSize(500, 500)
                 .bitmap()
-        imgQrCode.imageBitmap = qrCodeBitmap
+        imgQrCode.setImageBitmap(qrCodeBitmap)
     }
 
     private fun showOnTrezor(address: Address, account: Account) {
@@ -162,10 +161,10 @@ class AddressDetailActivity : AppCompatActivity(), KodeinAware, LabelDialogFragm
         val title = resources.getString(R.string.address_label)
         val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
         val label = address.label ?: ""
-        fragment.arguments = bundleOf(
-                LabelDialogFragment.ARG_TITLE to title,
-                LabelDialogFragment.ARG_TEXT to label
-        )
+        val args = Bundle()
+        args.putString(LabelDialogFragment.ARG_TITLE, title)
+        args.putString(LabelDialogFragment.ARG_TEXT, label)
+        fragment.arguments = args
         fragment.show(supportFragmentManager, "dialog")
     }
 }

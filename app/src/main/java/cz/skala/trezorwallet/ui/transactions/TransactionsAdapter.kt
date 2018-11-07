@@ -20,7 +20,6 @@ import cz.skala.trezorwallet.ui.formatPrice
 import kotlinx.android.synthetic.main.item_account_summary.view.*
 import kotlinx.android.synthetic.main.item_transaction.view.*
 import kotlinx.android.synthetic.main.item_transaction_date.view.*
-import org.jetbrains.anko.lines
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -141,7 +140,7 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                     val view = TextView(context)
                     view.text = output.getDisplayLabel(resources)
                     view.ellipsize = TextUtils.TruncateAt.END
-                    view.lines = 1
+                    view.setLines(1)
                     otherLabels.addView(view)
                 }
             }

@@ -7,9 +7,10 @@ import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.BaseViewModel
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
 
 /**
@@ -32,14 +33,14 @@ class TransactionDetailViewModel(app: Application) : BaseViewModel(app) {
         this.accountId = accountId
         this.txid = txid
 
-        launch(UI) {
-            transaction.value = bg {
+        GlobalScope.launch(Dispatchers.Main) {
+            transaction.value = async {
                 database.transactionDao().getByTxid(accountId, txid)
             }.await()
         }
     }
 
-    fun setOutputLabel(label: String) = launch(UI) {
+    fun setOutputLabel(label: String) = GlobalScope.launch(Dispatchers.Main) {
         labeling.setOutputLabel(selectedOutput!!, label)
         transaction.value = transaction.value
         selectedOutput = null

@@ -1,8 +1,10 @@
 package cz.skala.trezorwallet.coinmarketcap
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.jetbrains.anko.coroutines.experimental.bg
 import org.json.JSONArray
 import java.io.IOException
 
@@ -23,7 +25,7 @@ class CoinMarketCapClient {
      * @return The BTC/fiat exchange rate.
      */
     suspend fun fetchRate(currency: String): Double {
-        return bg {
+        return GlobalScope.async(Dispatchers.Default) {
             val url = "$API_URL?convert=$currency"
             val body = fetchStringBody(url)
             val jsonArray = JSONArray(body)

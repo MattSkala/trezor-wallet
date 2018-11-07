@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package cz.skala.trezorwallet.ui.send
 
 import android.app.Activity
@@ -55,6 +57,8 @@ class SendFragment : BaseFragment() {
     private val viewModel: SendViewModel by instance()
 
     private var textWatcherEnabled = true
+
+    @Suppress("DEPRECATION")
     private var progressDialog: ProgressDialog? = null
 
     override fun provideOverridingModule() = Kodein.Module {
@@ -121,7 +125,7 @@ class SendFragment : BaseFragment() {
                 edtAmountBtc.text = null
                 edtAmountUsd.text = null
 
-                val accountId = arguments!!.getString(ARG_ACCOUNT_ID)
+                val accountId = arguments!!.getString(ARG_ACCOUNT_ID)!!
                 (activity as MainActivity).showTransactions(accountId)
             } else {
                 Toast.makeText(context!!, R.string.sending_failed, Toast.LENGTH_LONG).show()
@@ -226,7 +230,7 @@ class SendFragment : BaseFragment() {
     }
 
     private fun updateFeeSpinnerAdapter(list: List<String>) {
-        val spinnerAdapter = ArrayAdapter<String>(context, android.R.layout.simple_spinner_dropdown_item, list)
+        val spinnerAdapter = ArrayAdapter<String>(context!!, android.R.layout.simple_spinner_dropdown_item, list)
         val selectedItem = if (spnFee.adapter != null) spnFee.selectedItemPosition else 1
         spnFee.adapter = spinnerAdapter
         spnFee.setSelection(selectedItem)
@@ -248,7 +252,7 @@ class SendFragment : BaseFragment() {
             return
         }
 
-        val account = arguments!!.getString(ARG_ACCOUNT_ID)
+        val account = arguments!!.getString(ARG_ACCOUNT_ID)!!
         val address = edtAddress.text.toString()
         val amount = edtAmountBtc.text.toString().toDouble()
 

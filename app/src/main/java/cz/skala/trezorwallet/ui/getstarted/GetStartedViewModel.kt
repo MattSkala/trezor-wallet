@@ -15,9 +15,10 @@ import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.exception.ApiException
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
 
 class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
@@ -51,11 +52,11 @@ class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
     }
 
     private fun scanAccount(node: TrezorType.HDNodeType, xpub: String) {
-        launch(UI) {
+        GlobalScope.launch(Dispatchers.Main) {
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
 
             try {
-                val hasTransactions = bg {
+                val hasTransactions = GlobalScope.async(Dispatchers.Default) {
                     val hasTransactions = accountDiscovery.scanAccount(node, legacy)
                     if (hasTransactions || (!legacy && index == 0)) {
                         val account = saveAccount(node, xpub, legacy)

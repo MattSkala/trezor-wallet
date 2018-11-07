@@ -1,11 +1,12 @@
 package cz.skala.trezorwallet.data
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import android.util.Log
 import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.hexToBytes
 import com.satoshilabs.trezor.intents.toHex
-import org.jetbrains.anko.defaultSharedPreferences
 
 /**
  * A helper for accessing SharedPreferences.
@@ -24,7 +25,7 @@ class PreferenceHelper(context: Context) {
         private const val DEVICE_STATE = "device_state"
     }
 
-    private val prefs = context.defaultSharedPreferences
+    private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 
     /**
      * TREZOR has been connected and account discovery performed.
@@ -44,7 +45,7 @@ class PreferenceHelper(context: Context) {
      * Fiat currency code.
      */
     var currencyCode: String
-        get() = prefs.getString(CURRENCY_CODE, "USD")
+        get() = prefs.getString(CURRENCY_CODE, "USD")!!
         set(value) = prefs.edit().putString(CURRENCY_CODE, value).apply()
 
     /**

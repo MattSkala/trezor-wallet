@@ -19,7 +19,6 @@ import cz.skala.trezorwallet.ui.LabelDialogFragment
 import cz.skala.trezorwallet.ui.formatBtcValue
 import kotlinx.android.synthetic.main.activity_transaction_detail.*
 import kotlinx.android.synthetic.main.item_transaction_input.view.*
-import org.jetbrains.anko.bundleOf
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
@@ -161,10 +160,9 @@ class TransactionDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDi
         val fragment = LabelDialogFragment()
         val title = resources.getString(R.string.output_label)
         val label = output.label ?: ""
-        fragment.arguments = bundleOf(
-                LabelDialogFragment.ARG_TITLE to title,
-                LabelDialogFragment.ARG_TEXT to label
-        )
+        val args = Bundle()
+        args.putString(LabelDialogFragment.ARG_TITLE, title)
+        args.putString(LabelDialogFragment.ARG_TEXT, label)
         fragment.show(supportFragmentManager, "dialog")
     }
 }

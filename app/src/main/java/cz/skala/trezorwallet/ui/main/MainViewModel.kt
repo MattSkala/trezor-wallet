@@ -13,9 +13,10 @@ import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
 
 /**
@@ -44,10 +45,8 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
             LabelingState.ENABLED else LabelingState.DISABLED
 
         if (labeling.isEnabled()) {
-            launch(UI) {
-                bg {
-                    labeling.downloadAccountsMetadata()
-                }.await()
+            GlobalScope.launch(Dispatchers.Default) {
+                labeling.downloadAccountsMetadata()
             }
         }
     }
@@ -64,13 +63,13 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun addAccount(legacy: Boolean) {
-        launch(UI) {
-            val lastAccount = bg {
+        GlobalScope.launch(Dispatchers.Main) {
+            val lastAccount = async(Dispatchers.Default) {
                  database.accountDao().getAll().lastOrNull { it.legacy == legacy }
             }.await()
 
             val lastAccountTransactions = if (lastAccount != null) {
-                bg {
+                async(Dispatchers.Default) {
                     database.transactionDao().getByAccount(lastAccount.id).size
                 }.await()
             } else 0
@@ -87,21 +86,19 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun saveAccount(node: TrezorType.HDNodeType, xpub: String) {
-        launch(UI) {
-            bg {
-                val account = Account.fromNode(node, xpub, isAccountRequestLegacy)
-                database.accountDao().insert(account)
-            }.await()
+        GlobalScope.launch(Dispatchers.Default) {
+            val account = Account.fromNode(node, xpub, isAccountRequestLegacy)
+            database.accountDao().insert(account)
         }
     }
 
-    fun enableLabeling(masterKey: ByteArray) = launch(UI) {
+    fun enableLabeling(masterKey: ByteArray) = GlobalScope.launch(Dispatchers.Main) {
         labelingState.value = LabelingState.SYNCING
         labeling.enableLabeling(masterKey)
         labelingState.value = LabelingState.ENABLED
     }
 
-    fun disableLabeling() = launch(UI) {
+    fun disableLabeling() = GlobalScope.launch(Dispatchers.Main) {
         labeling.disableLabeling()
         labelingState.value = LabelingState.DISABLED
     }
@@ -113,16 +110,16 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     /**
      * Updates currently selected account label.
      */
-    fun setAccountLabel(label: String) = launch(UI) {
+    fun setAccountLabel(label: String) = GlobalScope.launch(Dispatchers.Main) {
         val account = selectedAccount.value!!
         labeling.setAccountLabel(account, label)
     }
 
-    fun forgetDevice() = launch(UI) {
+    fun forgetDevice() = GlobalScope.launch(Dispatchers.Main) {
         if (labeling.isEnabled()) {
             labeling.disableLabeling()
         }
-        bg {
+        async(Dispatchers.Default) {
             database.accountDao().deleteAll()
             database.transactionDao().deleteAll()
             database.addressDao().deleteAll()

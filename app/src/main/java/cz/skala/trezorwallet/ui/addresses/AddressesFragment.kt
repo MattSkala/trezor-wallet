@@ -41,7 +41,7 @@ class AddressesFragment : BaseFragment() {
         super.onCreate(savedInstanceState)
 
         val args = arguments ?: return
-        viewModel.start(args.getString(ARG_ACCOUNT_ID))
+        viewModel.start(args.getString(ARG_ACCOUNT_ID)!!)
 
         viewModel.items.observe(this, Observer {
             if (it != null) {

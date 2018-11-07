@@ -15,9 +15,10 @@ import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import cz.skala.trezorwallet.ui.btcToSat
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import org.jetbrains.anko.coroutines.experimental.bg
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
 import java.io.IOException
 
@@ -62,9 +63,9 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
      * @param [fee] Mining fee in satoshis per byte.
      */
     fun composeTransaction(accountId: String, address: String, amount: Long, fee: Int) {
-        launch(UI) {
+        GlobalScope.launch(Dispatchers.Main) {
             try {
-                val (tx, inputTransactions) = bg {
+                val (tx, inputTransactions) = async(Dispatchers.Default) {
                     composer.composeTransaction(accountId, address, amount, fee)
                 }.await()
                 val signRequest = SignTxRequest(tx, inputTransactions)
@@ -76,7 +77,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun sendTransaction(rawtx: String) {
-        launch(UI) {
+        GlobalScope.launch(Dispatchers.Main) {
             sending.value = true
             try {
                 val txid = sendTx(rawtx)
@@ -95,7 +96,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     private suspend fun sendTx(rawtx: String): String {
-        return bg {
+        return GlobalScope.async(Dispatchers.Default) {
             val response = insightApi.sendTx(rawtx).execute()
             val body = response.body()
 
@@ -131,7 +132,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     private fun fetchRecommendedFees() {
-        launch(UI) {
+        GlobalScope.launch(Dispatchers.Main) {
             try {
                 val fees = feeEstimator.fetchRecommendedFees()
                 if (fees != null) {
