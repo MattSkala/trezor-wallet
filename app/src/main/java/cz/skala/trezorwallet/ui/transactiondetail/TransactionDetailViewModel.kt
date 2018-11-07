@@ -34,7 +34,7 @@ class TransactionDetailViewModel(app: Application) : BaseViewModel(app) {
         this.txid = txid
 
         GlobalScope.launch(Dispatchers.Main) {
-            transaction.value = async {
+            transaction.value = async(Dispatchers.Default) {
                 database.transactionDao().getByTxid(accountId, txid)
             }.await()
         }

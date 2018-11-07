@@ -4,6 +4,7 @@ import android.arch.lifecycle.LiveData
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.entity.*
 import cz.skala.trezorwallet.discovery.TransactionFetcher
+import cz.skala.trezorwallet.exception.ApiException
 import cz.skala.trezorwallet.insight.response.Tx
 import cz.skala.trezorwallet.labeling.AccountMetadata
 import cz.skala.trezorwallet.labeling.LabelingManager

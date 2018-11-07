@@ -70,7 +70,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         GlobalScope.launch(Dispatchers.Main) {
             refreshing.value = true
             try {
-                async(Dispatchers.Default) {
+                GlobalScope.async(Dispatchers.Default) {
                     transactionRepository.refresh(accountId)
                 }.await()
             } catch (e: Exception) {
@@ -81,10 +81,8 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     }
 
     fun removeAccount() {
-        GlobalScope.launch(Dispatchers.Main) {
-            async(Dispatchers.Default) {
-                database.accountDao().deleteById(accountId)
-            }.await()
+        GlobalScope.launch(Dispatchers.Default) {
+            database.accountDao().deleteById(accountId)
         }
     }
 

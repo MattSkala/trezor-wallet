@@ -12,7 +12,8 @@ import cz.skala.trezorwallet.exception.InsufficientFundsException
 class FifoCoinSelector : CoinSelector {
     override fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>,
                         feeRate: Int, segwit: Boolean): Pair<List<TransactionOutput>, Int> {
-        val target = outputs.sumBy { it.amount.toInt() }
+        var target = 0L
+        outputs.forEach { target += it.amount }
 
         val inputs = mutableListOf<TransactionOutput>()
         var inputsValue = 0L

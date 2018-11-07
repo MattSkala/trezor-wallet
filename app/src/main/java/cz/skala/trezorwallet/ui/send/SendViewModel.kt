@@ -65,7 +65,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     fun composeTransaction(accountId: String, address: String, amount: Long, fee: Int) {
         GlobalScope.launch(Dispatchers.Main) {
             try {
-                val (tx, inputTransactions) = async(Dispatchers.Default) {
+                val (tx, inputTransactions) = GlobalScope.async(Dispatchers.Default) {
                     composer.composeTransaction(accountId, address, amount, fee)
                 }.await()
                 val signRequest = SignTxRequest(tx, inputTransactions)

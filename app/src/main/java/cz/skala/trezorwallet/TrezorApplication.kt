@@ -91,8 +91,6 @@ class TrezorApplication : Application(), KodeinAware {
     }
 
     companion object {
-        const val PREF_INITIALIZED = "initialized"
-
         const val DATABASE_NAME = "trezor-wallet"
         const val INSIGHT_API_URL = "https://insight.bitpay.com/api/"
     }
@@ -106,9 +104,9 @@ class TrezorApplication : Application(), KodeinAware {
 
         // Log exceptions from coroutines
         val currentUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler({ thread, exception ->
+        Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
             Log.println(Log.ERROR, thread.name, Log.getStackTraceString(exception))
             currentUncaughtExceptionHandler.uncaughtException(thread, exception)
-        })
+        }
     }
 }
