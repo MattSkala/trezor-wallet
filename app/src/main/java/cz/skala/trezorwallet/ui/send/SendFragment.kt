@@ -125,8 +125,7 @@ class SendFragment : BaseFragment() {
                 edtAmountBtc.text = null
                 edtAmountUsd.text = null
 
-                val accountId = arguments!!.getString(ARG_ACCOUNT_ID)!!
-                (activity as MainActivity).showTransactions(accountId)
+                (activity as MainActivity).showTransactions()
             } else {
                 Toast.makeText(context!!, R.string.sending_failed, Toast.LENGTH_LONG).show()
             }

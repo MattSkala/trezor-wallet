@@ -265,7 +265,11 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
         return items
     }
 
-    fun showTransactions(accountId: String) {
+    fun showTransactions() {
+        navigation.selectedItemId = R.id.item_transactions
+    }
+
+    private fun showTransactions(accountId: String) {
         showFragment(TransactionsFragment::class, accountId)
     }
 

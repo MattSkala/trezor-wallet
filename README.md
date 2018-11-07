@@ -1,8 +1,14 @@
 # TREZOR Bitcoin Wallet for Android
 
+## Features
+
 - Import both SegWit and legacy accounts, load transaction history and keep track of the balance
 - Create a transaction, sign it with TREZOR and broadcast to the network
 - Account, address and transaction labeling compatible with SLIP-0015 standard
+- TREZOR One and TREZOR Model T support
+
+## Known Issues
+- Can't send transactions from SegWit accounts
 
 ## Build
 Install the debug build:
