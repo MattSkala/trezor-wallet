@@ -3,9 +3,11 @@ package cz.skala.trezorwallet.ui.main
 import android.app.Application
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
+import android.arch.lifecycle.Observer
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
@@ -26,6 +28,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     val database: AppDatabase by instance()
     val labeling: LabelingManager by instance()
     val prefs: PreferenceHelper by instance()
+    val blockbookSocketService: BlockbookSocketService by instance()
 
     val accounts: LiveData<List<Account>> by lazy {
         database.accountDao().getAllLiveData()
@@ -49,10 +52,18 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                 labeling.downloadAccountsMetadata()
             }
         }
+
+        //blockbookSocketService.connect()
+        //blockbookSocketService.subscribe("bitcoind/hashblock")
     }
 
     enum class LabelingState {
         DISABLED, SYNCING, ENABLED
+    }
+
+    override fun onCleared() {
+        blockbookSocketService.disconnect()
+        super.onCleared()
     }
 
     fun setSelectedAccount(account: Account) {

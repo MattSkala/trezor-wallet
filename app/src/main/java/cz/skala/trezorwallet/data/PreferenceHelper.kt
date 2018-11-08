@@ -23,6 +23,7 @@ class PreferenceHelper(context: Context) {
         private const val LABELING_MASTER_KEY = "labeling_master_key"
         private const val DROPBOX_TOKEN = "dropbox_token"
         private const val DEVICE_STATE = "device_state"
+        private const val BLOCK_HEIGHT = "block_height"
     }
 
     private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -105,6 +106,13 @@ class PreferenceHelper(context: Context) {
             Log.d("TrezorPrefs", "set device state = $hex")
             prefs.edit().putString(DEVICE_STATE, hex).apply()
         }
+
+    /**
+     * Current blockchain height.
+     */
+    var blockHeight: Int
+        get() = prefs.getInt(BLOCK_HEIGHT, 0)
+        set(value) = prefs.edit().putInt(BLOCK_HEIGHT, value).apply()
 
     fun clear() {
         prefs.edit().clear().apply()

@@ -55,6 +55,10 @@ dependencies {
     implementation 'com.github.kenglxn.QRGen:android:2.4.0'
     implementation 'com.dropbox.core:dropbox-core-sdk:3.0.7'
     implementation 'com.jakewharton.timber:timber:4.5.1'
+    implementation ('io.socket:socket.io-client:1.0.0') {
+        // excluding org.json which is provided by Android
+        exclude group: 'org.json', module: 'json'
+    }
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

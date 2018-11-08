@@ -5,7 +5,7 @@ package cz.skala.trezorwallet.insight.response
  */
 class TxOut(
         val n: Int,
-        val value: String,
+        val value: Long,
         val scriptPubKey: ScriptPubKey,
         val spentHeight: Int?,
         val spentTxId: String?)

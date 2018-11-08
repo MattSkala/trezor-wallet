@@ -66,7 +66,7 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
             addrs.add(address)
             Log.d(TAG, "/$addressIndex $address ($legacy)")
         }
-        val page = fetcher.fetchTransactionsPage(addrs, 0, 50)
+        val page = fetcher.fetchTransactions(addrs, 1)
         return page.isNotEmpty()
     }
 }

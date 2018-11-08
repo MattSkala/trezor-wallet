@@ -1,9 +1,11 @@
 package cz.skala.trezorwallet.compose
 
 import android.util.Log
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
+import io.socket.engineio.client.EngineIOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -13,7 +15,7 @@ import java.io.IOException
  * A helper class for fetching recommended fee rates.
  */
 class FeeEstimator(
-        private val insightApi: InsightApiService
+        private val blockbookSocketService: BlockbookSocketService
 ) {
     companion object {
         private const val TAG = "FeeEstimator"
@@ -29,43 +31,24 @@ class FeeEstimator(
      *
      * @return A map of [FeeLevel] to the recommended fee rate in satoshis per byte.
      */
-    @Throws(IOException::class)
+    @Throws(EngineIOException::class)
     suspend fun fetchRecommendedFees(): Map<FeeLevel, Int>? {
         return GlobalScope.async(Dispatchers.Default) {
-            // Block numbers separated by a comma
-            val feeLevelsQuery = FeeLevel.values()
-                    .filter { !it.halved }
-                    .joinToString(",") { it.blocks.toString() }
+            val recommendedFees = mutableMapOf<FeeLevel, Int>()
 
-            // Send a request to Insight API
-            val response = insightApi.estimateFee(feeLevelsQuery).execute()
-            val body = response.body()
+            FeeLevel.values().forEach {
+                val btcPerKb = blockbookSocketService.estimateSmartFee(it.blocks, false)
 
-            if (response.isSuccessful && body != null) {
-                val recommendedFees = mutableMapOf<FeeLevel, Int>()
+                // Convert BTC/kB to sat/B
+                var satPerB = (btcPerKb * BTC_TO_SATOSHI / 1000).toInt()
 
-                FeeLevel.values().forEach {
-                    var btcPerKb = body.getOrDefault(it.blocks.toString(), 0.0)
+                // Set minimal fee as 1 sat/B
+                satPerB = Math.max(satPerB, MINIMUM_FEE)
 
-                    // Calculate the low fee as the half of economy
-                    if (it.halved) {
-                        btcPerKb /= 2
-                    }
-
-                    // Convert BTC/kB to sat/B
-                    var satPerB = (btcPerKb * BTC_TO_SATOSHI / 1000).toInt()
-
-                    // Set minimal fee as 1 sat/B
-                    satPerB = Math.max(satPerB, MINIMUM_FEE)
-
-                    recommendedFees[it] = satPerB
-                }
-
-                recommendedFees
-            } else {
-                Log.e(TAG, "Fetching recommended fees failed")
-                null
+                recommendedFees[it] = satPerB
             }
+
+            recommendedFees
         }.await()
     }
 }

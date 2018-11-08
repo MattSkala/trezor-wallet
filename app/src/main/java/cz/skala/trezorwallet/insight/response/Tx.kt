@@ -7,15 +7,12 @@ class Tx(
         val txid: String,
         val version: Int,
         val locktime: Int,
-        val time: Long,
         val size: Int,
         val blockheight: Int,
-        val blockhash: String?,
         val blocktime: Long?,
-        val confirmations: Int,
-        val valueIn: Double,
-        val valueOut: Double,
-        val fees: Double,
+        val valueIn: Long,
+        val valueOut: Long,
+        val fees: Long,
         val vin: List<TxIn>,
         val vout: List<TxOut>
 ) {

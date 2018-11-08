@@ -3,6 +3,9 @@ package cz.skala.trezorwallet.ui.transactions
 import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
+import android.util.Log
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
+import cz.skala.trezorwallet.blockbook.options.GetAddressHistoryOptions
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
@@ -13,6 +16,7 @@ import cz.skala.trezorwallet.data.item.DateItem
 import cz.skala.trezorwallet.data.item.Item
 import cz.skala.trezorwallet.data.item.TransactionItem
 import cz.skala.trezorwallet.data.repository.TransactionRepository
+import cz.skala.trezorwallet.discovery.BalanceCalculator
 import cz.skala.trezorwallet.ui.BaseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -21,14 +25,17 @@ import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.generic.instance
 
+
 /**
  * A ViewModel for TransactionsFragment.
  */
 class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware {
-    val database: AppDatabase by instance()
-    val coinMarketCapClient: CoinMarketCapClient by instance()
-    val prefs: PreferenceHelper by instance()
-    val transactionRepository: TransactionRepository by instance()
+    private val database: AppDatabase by instance()
+    private val coinMarketCapClient: CoinMarketCapClient by instance()
+    private val prefs: PreferenceHelper by instance()
+    private val transactionRepository: TransactionRepository by instance()
+    private val blockbookSocketService: BlockbookSocketService by instance()
+    private val balanceCalculator: BalanceCalculator by instance()
 
     val items = MutableLiveData<List<Item>>()
     val refreshing = MutableLiveData<Boolean>()
@@ -47,7 +54,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         if (txs != null) {
             transactions = txs.sortedWith(compareBy({ it.tx.blockheight == -1 },
                     { it.tx.blockheight })).reversed()
-            summary = createAccountSummary(txs)
+            summary = balanceCalculator.createAccountSummary(txs)
             updateItems()
         }
     }
@@ -123,18 +130,5 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
 
         this.items.value = items
         this.empty.value = transactions.isEmpty()
-    }
-
-    private fun createAccountSummary(transactions: List<TransactionWithInOut>): AccountSummary {
-        var received = 0L
-        var sent = 0L
-        transactions.forEach {
-            when (it.tx.type) {
-                Transaction.Type.RECV -> received += it.tx.value
-                Transaction.Type.SENT -> sent += it.tx.value + it.tx.fee
-                Transaction.Type.SELF -> sent += it.tx.fee
-            }
-        }
-        return AccountSummary(received, sent)
     }
 }

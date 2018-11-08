@@ -12,9 +12,9 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
-import cz.skala.trezorwallet.exception.ApiException
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
+import io.socket.engineio.client.EngineIOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -22,10 +22,10 @@ import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
 
 class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
-    val database: AppDatabase by instance()
-    val accountDiscovery: AccountDiscoveryManager by instance()
-    val transactionRepository: TransactionRepository by instance()
-    val prefs: PreferenceHelper by instance()
+    private val database: AppDatabase by instance()
+    private val accountDiscovery: AccountDiscoveryManager by instance()
+    private val transactionRepository: TransactionRepository by instance()
+    private val prefs: PreferenceHelper by instance()
 
     val loading = MutableLiveData<Boolean>()
     val onPublicKeyRequest = SingleLiveEvent<PublicKeyRequest>()
@@ -74,7 +74,7 @@ class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
                     prefs.initialized = true
                     onAccountDiscoveryFinish.call()
                 }
-            } catch (e: ApiException) {
+            } catch (e: EngineIOException) {
                 e.printStackTrace()
                 Toast.makeText(app, e.message, Toast.LENGTH_SHORT).show()
                 loading.value = false

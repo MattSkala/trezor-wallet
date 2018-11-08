@@ -8,6 +8,7 @@ import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.exception.InsufficientFundsException
+import cz.skala.trezorwallet.sumByLong
 
 /**
  * The transaction composer builds an unsigned transaction using UTXOs on a specified account.
@@ -32,7 +33,7 @@ class TransactionComposer(
     fun composeTransaction(accountId: String, address: String, amount: Long, feeRate: Int):
             Pair<TrezorType.TransactionType, Map<String, TrezorType.TransactionType>> {
         val account = database.accountDao().getById(accountId)
-        val utxoSet = database.transactionDao().getUnspentOutputs(accountId)
+        val utxoSet = getUtxoSet(account)
 
         val outputs = mutableListOf<TrezorType.TxOutputType>()
         outputs += TrezorType.TxOutputType.newBuilder()
@@ -64,6 +65,26 @@ class TransactionComposer(
         }
 
         return Pair(transaction, referencedTransactions)
+    }
+
+    /**
+     * Finds unspent outputs by matching with inputs stored in the database.
+     */
+    private fun getUtxoSet(account: Account): List<TransactionOutput> {
+        val myOutputs = database.transactionDao().getMyOutputs(account.id)
+        val allInputs = database.transactionDao().getInputs(account.id)
+        val utxoSet = mutableListOf<TransactionOutput>()
+
+        myOutputs.forEach { txout ->
+            val unspent = allInputs.none { txin ->
+                txout.txid == txin.txid && txout.n == txin.vout
+            }
+            if (unspent) {
+                utxoSet += txout
+            }
+        }
+
+        return utxoSet
     }
 
     /**
@@ -100,7 +121,7 @@ class TransactionComposer(
                                 outputs: MutableList<TrezorType.TxOutputType>, fee: Int) {
         // Get fresh change address
         val changeAddress = database.addressDao().getByAccount(account.id, true).first {
-            it.totalReceived == 0.0
+            it.totalReceived == 0L
         }
 
         val changeScriptType = if (account.legacy) {
@@ -109,14 +130,14 @@ class TransactionComposer(
             TrezorType.OutputScriptType.PAYTOP2SHWITNESS
         }
 
-        val inputsValue = inputs.sumBy { it.value.toInt() }
-        val outputsValue = outputs.sumBy { it.amount.toInt() }
+        val inputsValue = inputs.sumByLong { it.value }
+        val outputsValue = outputs.sumByLong { it.amount }
         val changeValue = inputsValue - outputsValue - fee
 
         if (changeValue >= CoinSelector.DUST_THRESHOLD) {
             outputs += TrezorType.TxOutputType.newBuilder()
                     .addAllAddressN(changeAddress.getPath(account).toList())
-                    .setAmount(changeValue.toLong())
+                    .setAmount(changeValue)
                     .setScriptType(changeScriptType)
                     .build()
         }

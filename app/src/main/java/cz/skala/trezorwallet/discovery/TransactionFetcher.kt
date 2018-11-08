@@ -1,16 +1,20 @@
 package cz.skala.trezorwallet.discovery
 
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
+import cz.skala.trezorwallet.blockbook.options.GetAddressHistoryOptions
+import cz.skala.trezorwallet.blockbook.response.Tx
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
+import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
-import cz.skala.trezorwallet.exception.ApiException
-import cz.skala.trezorwallet.insight.InsightApiService
-import cz.skala.trezorwallet.insight.response.Tx
-import java.io.IOException
+import kotlinx.coroutines.runBlocking
 
 /**
  * A helper class for fetching transactions from Insight API.
  */
-class TransactionFetcher(val insightApi: InsightApiService) {
+class TransactionFetcher(
+        val blockbookSocketService: BlockbookSocketService,
+        val prefs: PreferenceHelper
+) {
     companion object {
         private const val GAP_SIZE = 20
         private const val PAGE_SIZE = 50
@@ -38,7 +42,8 @@ class TransactionFetcher(val insightApi: InsightApiService) {
         return Triple(txs, externalChainAddresses, changeAddresses)
     }
 
-    private fun fetchTransactionsForChainNode(externalChainNode: ExtendedPublicKey, addresses: MutableList<String>, legacy: Boolean): List<Tx> {
+    private fun fetchTransactionsForChainNode(externalChainNode: ExtendedPublicKey,
+                                              addresses: MutableList<String>, legacy: Boolean): List<Tx> {
         var from = 0
         val txs = mutableListOf<Tx>()
         do {
@@ -56,59 +61,12 @@ class TransactionFetcher(val insightApi: InsightApiService) {
         return txs
     }
 
-    private fun fetchTransactions(addresses: List<String>): List<Tx> {
-        val txs = mutableListOf<Tx>()
-        var from = 0
-        do {
-            val page = fetchTransactionsPage(addresses, from, from + PAGE_SIZE)
-            txs += page
-            from += PAGE_SIZE
-        } while (page.isNotEmpty())
-        return txs
-    }
+    fun fetchTransactions(addresses: List<String>, to: Int = Int.MAX_VALUE): List<Tx> = runBlocking {
+        val options = GetAddressHistoryOptions(start = prefs.blockHeight, to = to)
+        val result = blockbookSocketService.getAddressHistory(addresses, options)
+        val mempoolOptions = GetAddressHistoryOptions(start = prefs.blockHeight, to = to, queryMempoolOnly = true)
+        val mempoolResult = blockbookSocketService.getAddressHistory(addresses, mempoolOptions)
+        result.items.map { it.tx } + mempoolResult.items.map { it.tx }
 
-    @Throws(ApiException::class)
-    fun fetchTransactionsPage(addresses: List<String>, from: Int, to: Int): List<Tx> {
-        try {
-            val response = insightApi.getAddrsTxs(addresses.joinToString(","), from, to).execute()
-            val body = response.body()
-            if (response.isSuccessful && body != null) {
-                return body.items
-            } else {
-                throw ApiException("An error while fetching transactions")
-            }
-        } catch (e: IOException) {
-            throw ApiException("An error while communicating with server", e)
-        }
-    }
-
-    fun calculateBalance(txs: Set<Tx>, addresses: List<String>): Double {
-        var received = 0.0
-        var sent = 0.0
-
-        txs.forEach { tx ->
-            val isOutgoing = tx.vin.all { addresses.contains(it.addr) }
-
-            tx.vout.forEach { txOut ->
-                txOut.scriptPubKey.addresses?.forEach { addr ->
-                    if (isOutgoing) {
-                        if (!addresses.contains(addr)) {
-                            sent += txOut.value.toDouble()
-                        }
-                    } else {
-                        if (addresses.contains(addr)) {
-                            received += txOut.value.toDouble()
-                        }
-                    }
-
-                }
-            }
-
-            if (isOutgoing) {
-                sent += tx.fees
-            }
-        }
-
-        return received - sent
     }
 }

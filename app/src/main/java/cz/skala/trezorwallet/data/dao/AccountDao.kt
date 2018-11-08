@@ -25,7 +25,7 @@ interface AccountDao {
     fun insert(account: Account)
 
     @Query("UPDATE accounts SET balance = :balance WHERE id = :id")
-    fun updateBalance(id: String, balance: Double)
+    fun updateBalance(id: String, balance: Long)
 
     @Query("UPDATE accounts SET label = null")
     fun clearLabels()

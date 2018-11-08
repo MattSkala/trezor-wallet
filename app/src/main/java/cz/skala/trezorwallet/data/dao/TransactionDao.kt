@@ -26,9 +26,11 @@ abstract class TransactionDao {
     @android.arch.persistence.room.Transaction
     abstract fun getByAccountLiveDataWithInOut(account: String): LiveData<List<TransactionWithInOut>>
 
-    @Query("SELECT * FROM transaction_outputs WHERE account = :account AND isMine = 1 " +
-            "AND spentTxId IS NULL")
-    abstract fun getUnspentOutputs(account: String): List<TransactionOutput>
+    @Query("SELECT * FROM transaction_outputs WHERE account = :account AND isMine = 1")
+    abstract fun getMyOutputs(account: String): List<TransactionOutput>
+
+    @Query("SELECT * FROM transaction_inputs WHERE account = :account")
+    abstract fun getInputs(account: String): List<TransactionInput>
 
     @Query("UPDATE transaction_outputs SET label = :label WHERE account = :account AND txid = :txid AND n = :index")
     abstract fun updateLabel(account: String, txid: String, index: Int, label: String?)

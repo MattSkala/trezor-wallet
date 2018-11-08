@@ -1,5 +1,6 @@
 package cz.skala.trezorwallet.ui.addresses
 
+import android.support.v4.content.res.ResourcesCompat
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.text.SpannableStringBuilder
@@ -132,7 +133,7 @@ class AddressesAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             txtLabel.text = if (label != null && label.isNotEmpty()) label else address.address
             val receivedValue = formatBtcValue(address.totalReceived)
             val receivedText = SpannableStringBuilder(resources.getString(R.string.total_received, receivedValue))
-            val receivedColor = resources.getColor(R.color.colorAccent)
+            val receivedColor = ResourcesCompat.getColor(resources, R.color.colorAccent, null)
             receivedText.setSpan(ForegroundColorSpan(receivedColor),
                     receivedText.length - receivedValue.length, receivedText.length, 0)
             txtTotalReceived.text = receivedText

@@ -22,7 +22,7 @@ class TransactionInOutView(context: Context, attrs: AttributeSet? = null) : Fram
         txtValue.text = formatBtcValue(value)
     }
 
-    fun setAddress(address: String) {
+    fun setAddress(address: String?) {
         txtAddress.text = address
     }
 

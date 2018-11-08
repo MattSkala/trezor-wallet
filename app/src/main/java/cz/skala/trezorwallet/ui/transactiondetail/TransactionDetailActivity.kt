@@ -118,7 +118,9 @@ class TransactionDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDi
         view.setAddress(input.addr)
         view.setLabelEnabled(false)
         view.setOnClickListener {
-            showAddressOnWeb(input.addr)
+            if (input.addr != null) {
+                showAddressOnWeb(input.addr)
+            }
         }
         inputs.addView(view)
     }

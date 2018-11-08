@@ -9,19 +9,61 @@ import java.util.*
  */
 @Entity(tableName = "transactions", primaryKeys = ["txid", "account"])
 class Transaction(
+        /**
+         * Account node hash combined with the transaction hash. It is required for establishing
+         * correct relation with inputs and outputs in [TransactionWithInOut], as a transaction
+         * can occur on multiple accounts in different directions.
+         */
         val accountTxid: String,
+
+        /**
+         * Transaction hash.
+         */
         val txid: String,
+
+        /**
+         * Account node hash.
+         */
         val account: String,
+
+        /**
+         * Transaction format version.
+         */
         val version: Int,
-        val time: Long,
+
+        /**
+         * Size of the raw transaction in bytes.
+         */
         val size: Int,
+
+        /**
+         * Height of the block in which the tx is included, -1 for unconfirmed txs.
+         */
         val blockheight: Int,
-        val blockhash: String?,
+
+        /**
+         * Timestamp of the block in millis, null for unconfirmed tx.
+         */
         val blocktime: Long?,
-        val confirmations: Int,
+
+        /**
+         * Transaction direction.
+         */
         val type: Type,
+
+        /**
+         * Transaction value in satoshis.
+         */
         val value: Long,
+
+        /**
+         * Transaction fee in satoshis.
+         */
         val fee: Long,
+
+        /**
+         * The earliest block the transaction may be added to the blockchain.
+         */
         val locktime: Int
 ) {
     enum class Type {

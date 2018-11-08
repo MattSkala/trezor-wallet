@@ -71,6 +71,7 @@ class SendFragment : BaseFragment() {
         super.onCreate(savedInstanceState)
 
         viewModel.start()
+        viewModel.accountId = arguments!!.getString(ARG_ACCOUNT_ID)!!
 
         viewModel.amountBtc.observe(this, Observer {
             if (it != null && !edtAmountBtc.isFocused) {

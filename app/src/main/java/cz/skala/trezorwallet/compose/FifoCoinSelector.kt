@@ -4,6 +4,7 @@ import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.compose.CoinSelector.Companion.DUST_THRESHOLD
 import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.exception.InsufficientFundsException
+import cz.skala.trezorwallet.sumByLong
 
 /**
  * FIFO (First In, First Out) algorithm accumulates UTXOs from the oldest, until the target is
@@ -12,8 +13,7 @@ import cz.skala.trezorwallet.exception.InsufficientFundsException
 class FifoCoinSelector : CoinSelector {
     override fun select(utxoSet: List<TransactionOutput>, outputs: List<TrezorType.TxOutputType>,
                         feeRate: Int, segwit: Boolean): Pair<List<TransactionOutput>, Int> {
-        var target = 0L
-        outputs.forEach { target += it.amount }
+        var target = outputs.sumByLong { it.amount }
 
         val inputs = mutableListOf<TransactionOutput>()
         var inputsValue = 0L

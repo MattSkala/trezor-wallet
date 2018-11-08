@@ -5,10 +5,9 @@ package cz.skala.trezorwallet.insight.response
  */
 class TxIn(
         val n: Int,
-        val addr: String,
+        val addr: String?,
         val txid: String,
         val vout: Int,
-        val value: Double,
-        val valueSat: Long,
+        val value: Long,
         val scriptSig: ScriptSig,
         val sequence: Long)

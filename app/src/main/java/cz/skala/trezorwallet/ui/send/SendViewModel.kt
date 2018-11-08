@@ -12,10 +12,14 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 import cz.skala.trezorwallet.blockbook.BlockbookApiService
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
+import cz.skala.trezorwallet.data.entity.TransactionWithInOut
+import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import cz.skala.trezorwallet.ui.btcToSat
+import io.socket.engineio.client.EngineIOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -31,13 +35,15 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
         private const val TAG = "SendViewModel"
     }
 
-    val database: AppDatabase by instance()
-    val prefs: PreferenceHelper by instance()
-    val feeEstimator: FeeEstimator by instance()
-    val blockbookApi: BlockbookApiService by instance()
-    val composer: TransactionComposer by instance()
+    private val prefs: PreferenceHelper by instance()
+    private val feeEstimator: FeeEstimator by instance()
+    private val blockbookSocketService: BlockbookSocketService by instance()
+    private val composer: TransactionComposer by instance()
+    private val transactionRepository: TransactionRepository by instance()
 
     private var initialized = false
+
+    lateinit var accountId: String
 
     val amountBtc = MutableLiveData<Double>()
     val amountUsd = MutableLiveData<Double>()
@@ -98,14 +104,13 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
 
     private suspend fun sendTx(rawtx: String): String {
         return GlobalScope.async(Dispatchers.Default) {
-            val response = blockbookApi.sendTx(rawtx).execute()
-            val body = response.body()
+            val txid = blockbookSocketService.sendTransaction(rawtx)
 
-            if (!response.isSuccessful || body == null) {
-                throw Exception("Sending transaction failed")
-            }
+            // fetch new tx
+            val tx = blockbookSocketService.getDetailedTransaction(txid)
+            transactionRepository.saveTx(tx, accountId)
 
-            body.result
+            txid
         }.await()
     }
 
@@ -151,7 +156,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
                     }
                     recommendedFees.value = fees
                 }
-            } catch (e: IOException) {
+            } catch (e: EngineIOException) {
                 e.printStackTrace()
             }
         }

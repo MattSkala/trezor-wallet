@@ -94,7 +94,7 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             itemReceived.setTitle(R.string.received)
             itemSent.setTitle(R.string.sent)
 
-            val balance = summary.received - summary.sent
+            val balance = summary.balance
             itemBalance.setValuePrimary(formatBtcValue(balance))
             itemBalance.setValueSecondary(
                     formatPrice((balance.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode))

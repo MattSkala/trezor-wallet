@@ -20,7 +20,7 @@ class Account(
         val index: Int,
         val legacy: Boolean,
         var label: String?,
-        val balance: Double
+        val balance: Long
 ) {
     companion object {
         fun fromNode(node: TrezorType.HDNodeType, xpub: String, legacy: Boolean): Account {
@@ -29,7 +29,7 @@ class Account(
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
             val accountNode = ExtendedPublicKey(ExtendedPublicKey.decodePublicKey(publicKey), chainCode)
             return Account(accountNode.getAddress(), publicKey, chainCode, xpub, index,
-                    legacy, null, 0.0)
+                    legacy, null, 0)
         }
     }
 

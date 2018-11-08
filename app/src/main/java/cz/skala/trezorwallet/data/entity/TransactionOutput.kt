@@ -15,7 +15,6 @@ class TransactionOutput(
         val n: Int,
         val addr: String?,
         val value: Long,
-        val spentTxId: String?,
         val isMine: Boolean = false,
         val isChange: Boolean = false,
         val scriptPubKey: String,

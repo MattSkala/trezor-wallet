@@ -12,7 +12,7 @@ class TransactionInput(
         val n: Int,
         val txid: String,
         val vout: Int,
-        val addr: String,
+        val addr: String?,
         val value: Long,
         val scriptSig: String,
         val sequence: Long

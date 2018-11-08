@@ -14,6 +14,8 @@ import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.blockbook.BlockbookApiService
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
+import cz.skala.trezorwallet.discovery.BalanceCalculator
 import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.labeling.LabelingManager
 import okhttp3.OkHttpClient
@@ -63,7 +65,7 @@ class TrezorApplication : Application(), KodeinAware {
             httpClient.addInterceptor(logging)
 
             val retrofit = Retrofit.Builder()
-                    .baseUrl(BITCOINBOOK_API_URL)
+                    .baseUrl(BLOCKBOOK_API_HOST + BLOCKBOOK_API_PATH)
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(httpClient.build())
                     .build()
@@ -76,7 +78,7 @@ class TrezorApplication : Application(), KodeinAware {
         }
 
         bind<TransactionFetcher>() with singleton {
-            TransactionFetcher(instance())
+            TransactionFetcher(instance(), instance())
         }
 
         bind<CoinMarketCapClient>() with singleton {
@@ -100,18 +102,27 @@ class TrezorApplication : Application(), KodeinAware {
         }
 
         bind<TransactionRepository>() with singleton {
-            TransactionRepository(instance(), instance(), instance())
+            TransactionRepository(instance(), instance(), instance(), instance())
         }
 
         bind<LabelingManager>() with singleton {
             LabelingManager(applicationContext, instance(), instance())
+        }
+
+        bind<BlockbookSocketService>() with singleton {
+            BlockbookSocketService(instance())
+        }
+
+        bind<BalanceCalculator>() with singleton {
+            BalanceCalculator()
         }
     }
 
     companion object {
         const val DATABASE_NAME = "trezor-wallet"
         const val INSIGHT_API_URL = "https://insight.bitpay.com/api/"
-        const val BITCOINBOOK_API_URL = "https://btc1.trezor.io/api/"
+        const val BLOCKBOOK_API_HOST = "https://btc1.trezor.io"
+        const val BLOCKBOOK_API_PATH = "/api/"
     }
 
     override fun onCreate() {
