@@ -62,7 +62,7 @@ class TransactionFetcher(
     }
 
     fun fetchTransactions(addresses: List<String>, to: Int = Int.MAX_VALUE): List<Tx> = runBlocking {
-        val confirmed = fetchTransactions(addresses, to, true)
+        val confirmed = fetchTransactions(addresses, to, false)
         val unconfirmed = fetchTransactions(addresses, to, true)
         confirmed + unconfirmed
     }

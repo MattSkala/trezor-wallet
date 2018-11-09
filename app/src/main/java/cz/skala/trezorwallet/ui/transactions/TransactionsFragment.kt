@@ -59,8 +59,7 @@ class TransactionsFragment : BaseFragment() {
         })
 
         adapter.onTransactionClickListener = {
-            //startTransactionDetailActivity(it)
-            viewModel.subscribe()
+            startTransactionDetailActivity(it)
         }
     }
 

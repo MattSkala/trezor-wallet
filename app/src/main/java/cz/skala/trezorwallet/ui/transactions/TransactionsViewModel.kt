@@ -106,10 +106,6 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         }
     }
 
-    fun subscribe() {
-        blockbookSocketService.subscribe("bitcoind/hashblock")
-    }
-
     private fun updateItems() {
         val items = mutableListOf<Item>()
 
