@@ -138,7 +138,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                 }.await()
             } else 0
 
-            if (lastAccountTransactions > 0) {
+            if (lastAccount == null || lastAccountTransactions > 0) {
                 val newIndex = if (lastAccount != null) lastAccount.index + 1 else 0
                 isAccountRequestLegacy = legacy
                 onTrezorRequest.value =

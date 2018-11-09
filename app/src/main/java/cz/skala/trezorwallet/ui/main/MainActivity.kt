@@ -250,17 +250,22 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
     }
 
     private fun createAccountItems(accounts: List<Account>): List<Item> {
+        val segwitAccounts = accounts.filter { !it.legacy }
+        val legacyAccounts = accounts.filter { it.legacy }
+
         val items = mutableListOf<Item>()
-        var legacy = false
-        for (account in accounts) {
-            if (!legacy && account.legacy) {
-                legacy = true
-                items.add(AddAccountItem(false))
-                items.add(AccountSectionItem(R.string.legacy_accounts))
-            }
-            items.add(AccountItem(account))
+
+        segwitAccounts.forEach {
+            items.add(AccountItem(it))
+        }
+        items.add(AddAccountItem(false))
+
+        items.add(AccountSectionItem(R.string.legacy_accounts))
+        legacyAccounts.forEach {
+            items.add(AccountItem(it))
         }
         items.add(AddAccountItem(true))
+
         return items
     }
 

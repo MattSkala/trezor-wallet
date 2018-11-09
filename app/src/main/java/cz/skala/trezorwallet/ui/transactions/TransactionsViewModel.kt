@@ -9,6 +9,7 @@ import cz.skala.trezorwallet.blockbook.options.GetAddressHistoryOptions
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
+import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Transaction
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.data.item.AccountSummaryItem
@@ -34,12 +35,12 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     private val coinMarketCapClient: CoinMarketCapClient by instance()
     private val prefs: PreferenceHelper by instance()
     private val transactionRepository: TransactionRepository by instance()
-    private val blockbookSocketService: BlockbookSocketService by instance()
     private val balanceCalculator: BalanceCalculator by instance()
 
     val items = MutableLiveData<List<Item>>()
     val refreshing = MutableLiveData<Boolean>()
     val empty = MutableLiveData<Boolean>()
+    val account = MutableLiveData<Account>()
 
     private var initialized = false
     private lateinit var accountId: String
@@ -62,6 +63,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     fun start(accountId: String) {
         if (!initialized) {
             this.accountId = accountId
+            loadAccount()
             loadTransactions()
             fetchTransactions(false)
             fetchRate()
@@ -90,6 +92,14 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     fun removeAccount() {
         GlobalScope.launch(Dispatchers.Default) {
             database.accountDao().deleteById(accountId)
+        }
+    }
+
+    private fun loadAccount() {
+        GlobalScope.launch(Dispatchers.Main) {
+            account.value = async(Dispatchers.Default) {
+                database.accountDao().getById(accountId)
+            }.await()
         }
     }
 

@@ -58,6 +58,12 @@ class TransactionsFragment : BaseFragment() {
             empty.visibility = if (it == true) View.VISIBLE else View.GONE
         })
 
+        viewModel.account.observe(this, Observer {
+            if (it != null) {
+                btnHideAccount.visibility = if (it.index > 0) View.VISIBLE else View.GONE
+            }
+        })
+
         adapter.onTransactionClickListener = {
             startTransactionDetailActivity(it)
         }
