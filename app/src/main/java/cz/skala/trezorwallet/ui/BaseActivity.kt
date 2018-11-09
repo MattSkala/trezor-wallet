@@ -13,5 +13,5 @@ abstract class BaseActivity : AppCompatActivity(), KodeinAware {
         import(provideOverridingModule())
     }
 
-    open fun provideOverridingModule() = Kodein.Module {}
+    open fun provideOverridingModule() = Kodein.Module("Activity") {}
 }

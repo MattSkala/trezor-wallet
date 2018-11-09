@@ -3,7 +3,7 @@ package cz.skala.trezorwallet.ui
 import android.support.v4.app.Fragment
 import org.kodein.di.Kodein
 import org.kodein.di.KodeinAware
-import org.kodein.di.android.closestKodein
+import org.kodein.di.android.support.closestKodein
 
 
 abstract class BaseFragment : Fragment(), KodeinAware {
@@ -13,5 +13,5 @@ abstract class BaseFragment : Fragment(), KodeinAware {
         import(provideOverridingModule())
     }
 
-    open fun provideOverridingModule() = Kodein.Module {}
+    open fun provideOverridingModule() = Kodein.Module("Fragment") {}
 }

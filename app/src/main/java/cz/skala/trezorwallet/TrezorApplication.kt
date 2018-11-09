@@ -2,12 +2,16 @@ package cz.skala.trezorwallet
 
 import android.app.Application
 import android.util.Log
+import cz.skala.trezorwallet.di.appModule
+import org.kodein.di.Kodein
 import org.kodein.di.KodeinAware
 import timber.log.Timber
 
 
 class TrezorApplication : Application(), KodeinAware {
-    override val kodein = initKodein(this)
+    override val kodein = Kodein.lazy {
+        import(appModule(this@TrezorApplication))
+    }
 
     companion object {
         const val DATABASE_NAME = "trezor-wallet"

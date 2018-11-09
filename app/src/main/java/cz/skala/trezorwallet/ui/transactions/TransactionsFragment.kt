@@ -31,7 +31,7 @@ class TransactionsFragment : BaseFragment() {
 
     private val adapter = TransactionsAdapter()
 
-    override fun provideOverridingModule() = Kodein.Module {
+    override fun provideOverridingModule() = Kodein.Module("Transactions") {
         bind<TransactionsViewModel>() with provider {
             ViewModelProviders.of(this@TransactionsFragment)[TransactionsViewModel::class.java]
         }
@@ -59,7 +59,8 @@ class TransactionsFragment : BaseFragment() {
         })
 
         adapter.onTransactionClickListener = {
-            startTransactionDetailActivity(it)
+            //startTransactionDetailActivity(it)
+            viewModel.subscribe()
         }
     }
 

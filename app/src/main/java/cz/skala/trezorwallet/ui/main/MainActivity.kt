@@ -56,7 +56,7 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
 
     private var dropboxAuthRequested = false
 
-    override fun provideOverridingModule() = Kodein.Module {
+    override fun provideOverridingModule() = Kodein.Module("Main") {
         bind<MainViewModel>() with provider {
             ViewModelProviders.of(this@MainActivity)[MainViewModel::class.java]
         }

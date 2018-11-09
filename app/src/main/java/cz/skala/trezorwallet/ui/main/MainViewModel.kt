@@ -53,8 +53,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
             }
         }
 
-        //blockbookSocketService.connect()
-        //blockbookSocketService.subscribe("bitcoind/hashblock")
+        blockbookSocketService.subscribe("bitcoind/hashblock")
     }
 
     enum class LabelingState {

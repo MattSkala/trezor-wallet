@@ -31,7 +31,7 @@ class AddressesFragment : BaseFragment() {
 
     private val adapter = AddressesAdapter()
 
-    override fun provideOverridingModule() = Kodein.Module {
+    override fun provideOverridingModule() = Kodein.Module("Addresses") {
         bind<AddressesViewModel>() with provider {
             ViewModelProviders.of(this@AddressesFragment)[AddressesViewModel::class.java]
         }

@@ -12,6 +12,7 @@ import io.socket.client.Ack
 import io.socket.client.IO
 import io.socket.client.Socket
 import io.socket.emitter.Emitter
+import io.socket.parser.IOParser
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -54,6 +55,7 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         initLogger(Emitter::class.java)
         initLogger(Socket::class.java)
         initLogger(io.socket.engineio.client.Socket::class.java)
+        initLogger(IOParser::class.java)
 
         val opts = IO.Options()
         opts.transports = arrayOf(TRANSPORT)
@@ -62,10 +64,7 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         socket.on(Socket.EVENT_CONNECT) {
             Log.d(TAG, "EVENT_CONNECT")
 
-            GlobalScope.launch {
-                val info = getInfo()
-                prefs.blockHeight = info.blocks
-            }
+            updateBlockHeight()
         }.on(Socket.EVENT_DISCONNECT) {
             Log.d(TAG, "EVENT_DISCONNECT: " + it.size)
         }.on(Socket.EVENT_MESSAGE) {
@@ -81,15 +80,12 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
             Log.d(TAG, "EVENT_ERROR: " + it[0])
         }.on("bitcoind/hashblock") {
             Log.d(TAG, "bitcoind/hashblock: " + it[0])
+            updateBlockHeight()
         }.on("bitcoind/addresstxid") {
             Log.d(TAG, "bitcoind/addresstxid: " + it[0])
         }
 
         socket
-    }
-
-    fun connect() {
-        socket.connect()
     }
 
     fun disconnect() {
@@ -121,8 +117,11 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         return sendMessage(body)
     }
 
-    fun subscribe(vararg params: Any) {
-        socket.emit(SUBSCRIBE, params)
+    fun subscribe(topic: String) {
+        Log.d(TAG, "subscribe: $topic")
+
+        socket.connect()
+        socket.emit(SUBSCRIBE, topic)
     }
 
     /**
@@ -182,6 +181,13 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
 
     private fun toJsonObject(obj: Any): JSONObject {
         return JSONObject(gson.toJson(obj))
+    }
+
+    private fun updateBlockHeight() {
+        GlobalScope.launch {
+            val info = getInfo()
+            prefs.blockHeight = info.blocks
+        }
     }
 
     private fun initLogger(klass: Class<out Any>) {

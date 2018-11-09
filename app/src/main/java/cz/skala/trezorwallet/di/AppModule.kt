@@ -1,7 +1,8 @@
-package cz.skala.trezorwallet
+package cz.skala.trezorwallet.di
 
 import android.app.Application
 import android.arch.persistence.room.Room
+import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.compose.CoinSelector
@@ -16,14 +17,14 @@ import cz.skala.trezorwallet.discovery.BalanceCalculator
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.labeling.LabelingManager
 import org.kodein.di.Kodein
-import org.kodein.di.LazyKodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.eagerSingleton
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 
-fun initKodein(applicationContext: Application): LazyKodein {
-    return Kodein.lazy {
+
+fun appModule(applicationContext: Application): Kodein.Module {
+    return Kodein.Module("AppModule") {
         bind<AppDatabase>() with eagerSingleton {
             Room.databaseBuilder(applicationContext, AppDatabase::class.java, TrezorApplication.DATABASE_NAME)
                     .fallbackToDestructiveMigration()
