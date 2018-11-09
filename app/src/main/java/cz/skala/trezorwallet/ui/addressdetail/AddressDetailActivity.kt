@@ -20,6 +20,7 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
 import cz.skala.trezorwallet.labeling.LabelingManager
+import cz.skala.trezorwallet.ui.BaseActivity
 import cz.skala.trezorwallet.ui.LabelDialogFragment
 import kotlinx.android.synthetic.main.activity_address_detail.*
 import kotlinx.coroutines.Dispatchers
@@ -35,12 +36,11 @@ import org.kodein.di.generic.instance
 /**
  * An activity for address detail.
  */
-class AddressDetailActivity : AppCompatActivity(), KodeinAware, LabelDialogFragment.EditTextDialogListener {
+class AddressDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener {
     companion object {
         const val EXTRA_ADDRESS = "address"
     }
 
-    override val kodein by closestKodein()
     private val database: AppDatabase by instance()
     private val labeling: LabelingManager by instance()
     private val prefs: PreferenceHelper by instance()

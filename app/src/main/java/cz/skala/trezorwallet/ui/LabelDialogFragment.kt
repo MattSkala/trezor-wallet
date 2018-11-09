@@ -28,13 +28,13 @@ class LabelDialogFragment : DialogFragment() {
         val dialog = AlertDialog.Builder(context!!)
                 .setTitle(arguments?.getString(ARG_TITLE))
                 .setView(view)
-                .setPositiveButton(android.R.string.ok, { _, _ ->
+                .setPositiveButton(android.R.string.ok) { _, _ ->
                     val activity = this.activity
                     if (activity is EditTextDialogListener) {
                         val text = view.editText.text.toString()
                         activity.onTextChanged(text)
                     }
-                })
+                }
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
 

@@ -49,7 +49,6 @@ class MainActivity : BaseActivity(), LabelDialogFragment.EditTextDialogListener 
     }
 
     private val viewModel: MainViewModel by instance()
-
     private val prefs: PreferenceHelper by instance()
 
     private val accountsAdapter = AccountsAdapter()

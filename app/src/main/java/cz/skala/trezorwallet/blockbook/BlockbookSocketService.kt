@@ -54,25 +54,27 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
     private val gson = Gson()
     private val suspendedCoroutines = mutableListOf<CancellableContinuation<Any>>()
 
-    private val subscriptions = mutableListOf<SubscriptionListener>()
+    private val connectionListeners = mutableListOf<ConnectionListener>()
+    private val subscriptionListeners = mutableListOf<SubscriptionListener>()
 
     private val socket: Socket by lazy {
-        initLogger(IO::class.java)
-        initLogger(Emitter::class.java)
-        initLogger(Socket::class.java)
-        initLogger(io.socket.engineio.client.Socket::class.java)
-        initLogger(IOParser::class.java)
-
         val opts = IO.Options()
         opts.transports = arrayOf(TRANSPORT)
+        opts.encoder = BlockbookPacketEncoder()
         val socket = IO.socket(TrezorApplication.BLOCKBOOK_API_URL, opts)
 
         socket.on(Socket.EVENT_CONNECT) {
             Log.d(TAG, "EVENT_CONNECT")
 
-            updateBlockHeight()
+            connectionListeners.forEach { listener ->
+                listener.onConnect()
+            }
         }.on(Socket.EVENT_DISCONNECT) {
-            Log.d(TAG, "EVENT_DISCONNECT: " + it.size)
+            Log.d(TAG, "EVENT_DISCONNECT")
+
+            connectionListeners.forEach { listener ->
+                listener.onDisconnect()
+            }
         }.on(Socket.EVENT_MESSAGE) {
             Log.d(TAG, "EVENT_MESSAGE: " + it[0])
         }.on(Socket.EVENT_CONNECT_ERROR) {
@@ -86,9 +88,10 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
             Log.d(TAG, "EVENT_ERROR: " + it[0])
         }.on(BITCOIND_HASHBLOCK) {
             Log.d(TAG, "bitcoind/hashblock: " + it[0])
+
             val hash = it[0] as String
 
-            subscriptions.forEach { listener ->
+            subscriptionListeners.forEach { listener ->
                 listener.onHashblock(hash)
             }
         }.on(BITCOIND_ADDRESSTXID) {
@@ -97,12 +100,20 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
             val result = gson.fromJson((it[0] as JSONObject).toString(),
                     AddressTxidResult::class.java)
 
-            subscriptions.forEach { listener ->
+            subscriptionListeners.forEach { listener ->
                 listener.onAddressTxid(result.address, result.txid)
             }
         }
 
         socket
+    }
+
+    fun isConnected(): Boolean {
+        return socket.connected()
+    }
+
+    fun connect() {
+        socket.connect()
     }
 
     fun disconnect() {
@@ -204,12 +215,24 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         socket.emit(SUBSCRIBE, BITCOIND_ADDRESSTXID, addressesJson)
     }
 
+    fun addConnectionListener(listener: ConnectionListener) {
+        if (!connectionListeners.contains(listener)) {
+            connectionListeners.add(listener)
+        }
+    }
+
+    fun removeConnectionListener(listener: ConnectionListener) {
+        connectionListeners.remove(listener)
+    }
+
     fun addSubscriptionListener(listener: SubscriptionListener) {
-        subscriptions.add(listener)
+        if (!subscriptionListeners.contains(listener)) {
+            subscriptionListeners.add(listener)
+        }
     }
 
     fun removeSubscriptionListener(listener: SubscriptionListener) {
-        subscriptions.remove(listener)
+        subscriptionListeners.remove(listener)
     }
 
     private fun toJsonArray(list: List<String>): JSONArray {
@@ -222,31 +245,13 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         return JSONObject(gson.toJson(obj))
     }
 
-    private fun updateBlockHeight() {
-        GlobalScope.launch {
-            val info = getInfo()
-            prefs.blockHeight = info.blocks
-        }
-    }
-
-    private fun initLogger(klass: Class<out Any>) {
-        Logger.getLogger(klass.name).level = Level.ALL
-        Logger.getLogger(klass.name).addHandler(object : Handler() {
-            override fun publish(record: LogRecord?) {
-                Log.d(record?.loggerName, record?.message)
-            }
-
-            override fun flush() {
-            }
-
-            override fun close() {
-            }
-
-        })
-    }
-
     interface SubscriptionListener {
         fun onHashblock(hash: String)
         fun onAddressTxid(address: String, txid: String)
+    }
+
+    interface ConnectionListener {
+        fun onConnect()
+        fun onDisconnect()
     }
 }

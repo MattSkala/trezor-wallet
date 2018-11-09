@@ -47,10 +47,25 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
 
     private var isAccountRequestLegacy = false
 
+    private val blockbookConnectionListener = object : BlockbookSocketService.ConnectionListener {
+        override fun onConnect() {
+            GlobalScope.launch {
+                val info = blockbookSocketService.getInfo()
+                prefs.blockHeight = info.blocks
+
+                initBlockbookSubscription()
+            }
+        }
+
+        override fun onDisconnect() {
+        }
+    }
+
     private val blockbookSubscriptionListener = object : BlockbookSocketService.SubscriptionListener {
         override fun onHashblock(hash: String) {
             GlobalScope.launch {
                 try {
+                    // Fetch current block height
                     val info = blockbookSocketService.getInfo()
                     prefs.blockHeight = info.blocks
                 } catch (e: EngineIOException) {
@@ -62,6 +77,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
         override fun onAddressTxid(address: String, txid: String) {
             GlobalScope.launch {
                 try {
+                    // Fetch the transaction and save it to the database
                     val tx = blockbookSocketService.getDetailedTransaction(txid)
                     val addresses = database.addressDao().getByAddress(address)
                     addresses.forEach {
@@ -84,7 +100,14 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
             }
         }
 
-        initBlockbookSubscription()
+        blockbookSocketService.addConnectionListener(blockbookConnectionListener)
+        blockbookSocketService.addSubscriptionListener(blockbookSubscriptionListener)
+
+        if (blockbookSocketService.isConnected()) {
+            blockbookConnectionListener.onConnect()
+        } else {
+            blockbookSocketService.connect()
+        }
     }
 
     enum class LabelingState {
@@ -92,8 +115,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     override fun onCleared() {
-        blockbookSocketService.removeSubscriptionListener(blockbookSubscriptionListener)
-        blockbookSocketService.disconnect()
+        disconnectBlockbook()
         super.onCleared()
     }
 
@@ -131,6 +153,9 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
         GlobalScope.launch(Dispatchers.Default) {
             val account = Account.fromNode(node, xpub, isAccountRequestLegacy)
             database.accountDao().insert(account)
+
+            // Update Blockbook subscription
+            initBlockbookSubscription()
         }
     }
 
@@ -158,6 +183,8 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun forgetDevice() = GlobalScope.launch(Dispatchers.Main) {
+        disconnectBlockbook()
+
         if (labeling.isEnabled()) {
             labeling.disableLabeling()
         }
@@ -170,13 +197,11 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     private fun initBlockbookSubscription() {
-        blockbookSocketService.addSubscriptionListener(blockbookSubscriptionListener)
-
         // Subscribe to new blocks
         blockbookSocketService.subscribeHashblock()
 
         GlobalScope.launch(Dispatchers.Default) {
-            // Subscribe to addresses
+            // Subscribe to new transactions on external chain addresses
             val accounts = database.accountDao().getAll()
             accounts.forEach {  account ->
                 val addresses = database.addressDao()
@@ -185,5 +210,11 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                 blockbookSocketService.subscribeAddressTxid(addresses)
             }
         }
+    }
+
+    private fun disconnectBlockbook() {
+        blockbookSocketService.removeSubscriptionListener(blockbookSubscriptionListener)
+        blockbookSocketService.removeConnectionListener(blockbookConnectionListener)
+        blockbookSocketService.disconnect()
     }
 }

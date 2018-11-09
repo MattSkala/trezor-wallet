@@ -63,7 +63,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         if (!initialized) {
             this.accountId = accountId
             loadTransactions()
-            fetchTransactions()
+            fetchTransactions(false)
             fetchRate()
             initialized = true
         }
@@ -73,9 +73,9 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         transactionsLiveData.removeObserver(transactionsObserver)
     }
 
-    fun fetchTransactions() {
+    fun fetchTransactions(showProgress: Boolean = true) {
         GlobalScope.launch(Dispatchers.Main) {
-            refreshing.value = true
+            if (showProgress) refreshing.value = true
             try {
                 GlobalScope.async(Dispatchers.Default) {
                     transactionRepository.refresh(accountId)
@@ -83,7 +83,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            refreshing.value = false
+            if (showProgress) refreshing.value = false
         }
     }
 

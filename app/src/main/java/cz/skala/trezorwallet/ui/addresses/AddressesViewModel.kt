@@ -21,7 +21,7 @@ class AddressesViewModel(app: Application) : BaseViewModel(app) {
         private const val FRESH_ADDRESSES_LIMIT = 20
     }
 
-    val database: AppDatabase by instance()
+    private val database: AppDatabase by instance()
 
     val items = MutableLiveData<List<Item>>()
 

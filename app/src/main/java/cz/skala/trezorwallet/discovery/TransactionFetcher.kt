@@ -35,6 +35,11 @@ class TransactionFetcher(
         val externalChainAddresses = mutableListOf<String>()
         val changeAddresses = mutableListOf<String>()
 
+        runBlocking {
+            val info = blockbookSocketService.getInfo()
+            prefs.blockHeight = info.blocks
+        }
+
         txs += fetchTransactionsForChainNode(externalChainNode, externalChainAddresses, account.legacy)
 
         txs += fetchTransactionsForChainNode(changeNode, changeAddresses, account.legacy)

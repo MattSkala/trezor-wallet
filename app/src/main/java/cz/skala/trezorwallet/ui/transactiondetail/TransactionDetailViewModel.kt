@@ -17,8 +17,8 @@ import org.kodein.di.generic.instance
  * A ViewModel for TransactionDetailActivity.
  */
 class TransactionDetailViewModel(app: Application) : BaseViewModel(app) {
-    val database: AppDatabase by instance()
-    val labeling: LabelingManager by instance()
+    private val database: AppDatabase by instance()
+    private val labeling: LabelingManager by instance()
 
     private lateinit var accountId: String
     private lateinit var txid: String
