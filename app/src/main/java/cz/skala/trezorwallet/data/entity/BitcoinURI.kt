@@ -78,9 +78,9 @@ class BitcoinURI(
             }
 
             var isFirst = true
-            params.forEach { key, value ->
+            params.forEach {
                 append (if (isFirst) "?" else "&")
-                append("$key=$value")
+                append("${it.key}=${it.value}")
                 isFirst = false
             }
         }.toString()

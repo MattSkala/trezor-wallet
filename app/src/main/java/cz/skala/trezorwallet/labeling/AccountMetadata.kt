@@ -80,14 +80,18 @@ class AccountMetadata {
         json.put(KEY_VERSION, CURRENT_VERSION)
         json.put(KEY_ACCOUNT_LABEL, accountLabel)
         val addressLabelsJson = JSONObject()
-        addressLabels.forEach { key, value ->
-            addressLabelsJson.put(key, value)
+        addressLabels.forEach {
+            addressLabelsJson.put(it.key, it.value)
         }
         json.put(KEY_ADDRESS_LABELS, addressLabelsJson)
         val outputLabelsJson = JSONObject()
-        outputLabels.forEach { txid, outputs ->
+        outputLabels.forEach { outputLabel ->
+            val txid = outputLabel.key
+            val outputs = outputLabel.value
             val labelsJson = JSONObject()
-            outputs?.forEach { index, label ->
+            outputs?.forEach { output ->
+                val index = output.key
+                val label = output.value
                 labelsJson.put(index, label)
             }
             outputLabelsJson.put(txid, labelsJson)
