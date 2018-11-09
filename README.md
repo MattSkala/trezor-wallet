@@ -23,16 +23,14 @@ Run unit tests:
 
 [QRGen](https://github.com/kenglxn/QRGen) – QR code generation
 
-[Retrofit](http://square.github.io/retrofit/) – REST API communication
+[Socket.IO-client Java](https://github.com/socketio/socket.io-client-java) – WebSocket communication
 
 [Kodein](https://github.com/Kodein-Framework/Kodein-DI/) – dependency injection
 
 [Dropbox SDK](https://github.com/dropbox/dropbox-sdk-java) – labels synchronization
 
 ## APIs
-[Insight API](https://github.com/bitpay/insight-api) – transactions fetching and fee estimation
-
-[Blockbook](https://github.com/trezor/blockbook) – transaction broadcasting
+[Blockbook](https://github.com/trezor/blockbook) – transactions fetching, broadcasting and fee estimation
 
 [CoinMarketCap](https://coinmarketcap.com/api/) – exchange rate
 
