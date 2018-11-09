@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.gson.Gson
 import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.blockbook.options.GetAddressHistoryOptions
+import cz.skala.trezorwallet.blockbook.response.AddressTxidResult
 import cz.skala.trezorwallet.blockbook.response.GetAddressHistoryResult
 import cz.skala.trezorwallet.blockbook.response.GetInfoResult
 import cz.skala.trezorwallet.blockbook.response.Tx
@@ -44,13 +45,18 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         private const val PARAMS = "params"
         private const val RESULT = "result"
         private const val SUBSCRIBE = "subscribe"
+
+        private const val BITCOIND_HASHBLOCK = "bitcoind/hashblock"
+        private const val BITCOIND_ADDRESSTXID = "bitcoind/addresstxid"
     }
 
+
     private val gson = Gson()
+    private val suspendedCoroutines = mutableListOf<CancellableContinuation<Any>>()
 
-    val suspendedCoroutines = mutableListOf<CancellableContinuation<Any>>()
+    private val subscriptions = mutableListOf<SubscriptionListener>()
 
-    val socket: Socket by lazy {
+    private val socket: Socket by lazy {
         initLogger(IO::class.java)
         initLogger(Emitter::class.java)
         initLogger(Socket::class.java)
@@ -78,11 +84,22 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
             }
         }.on(Socket.EVENT_ERROR) {
             Log.d(TAG, "EVENT_ERROR: " + it[0])
-        }.on("bitcoind/hashblock") {
+        }.on(BITCOIND_HASHBLOCK) {
             Log.d(TAG, "bitcoind/hashblock: " + it[0])
-            updateBlockHeight()
-        }.on("bitcoind/addresstxid") {
+            val hash = it[0] as String
+
+            subscriptions.forEach { listener ->
+                listener.onHashblock(hash)
+            }
+        }.on(BITCOIND_ADDRESSTXID) {
             Log.d(TAG, "bitcoind/addresstxid: " + it[0])
+
+            val result = gson.fromJson((it[0] as JSONObject).toString(),
+                    AddressTxidResult::class.java)
+
+            subscriptions.forEach { listener ->
+                listener.onAddressTxid(result.address, result.txid)
+            }
         }
 
         socket
@@ -115,13 +132,6 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         body.put(METHOD, method)
         body.put(PARAMS, params)
         return sendMessage(body)
-    }
-
-    fun subscribe(topic: String) {
-        Log.d(TAG, "subscribe: $topic")
-
-        socket.connect()
-        socket.emit(SUBSCRIBE, topic)
     }
 
     /**
@@ -173,6 +183,35 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         return callMethod(METHOD_SEND_TRANSACTION, params) as String
     }
 
+    fun subscribe(topic: String) {
+        Log.d(TAG, "subscribe: $topic")
+
+        socket.connect()
+        socket.emit(SUBSCRIBE, topic)
+    }
+
+    fun subscribeHashblock() {
+        subscribe(BITCOIND_HASHBLOCK)
+    }
+
+    fun subscribeAddressTxid(addresses: List<String>) {
+        socket.connect()
+
+        val addressesJson = JSONArray()
+        addresses.forEach {
+            addressesJson.put(it)
+        }
+        socket.emit(SUBSCRIBE, BITCOIND_ADDRESSTXID, addressesJson)
+    }
+
+    fun addSubscriptionListener(listener: SubscriptionListener) {
+        subscriptions.add(listener)
+    }
+
+    fun removeSubscriptionListener(listener: SubscriptionListener) {
+        subscriptions.remove(listener)
+    }
+
     private fun toJsonArray(list: List<String>): JSONArray {
         val json = JSONArray()
         list.forEach { json.put(it) }
@@ -204,5 +243,10 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
             }
 
         })
+    }
+
+    interface SubscriptionListener {
+        fun onHashblock(hash: String)
+        fun onAddressTxid(address: String, txid: String)
     }
 }

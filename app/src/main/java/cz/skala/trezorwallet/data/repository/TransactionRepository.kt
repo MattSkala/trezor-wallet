@@ -24,7 +24,7 @@ class TransactionRepository(
     }
 
     /**
-     * Fetches the transactions list from Insight API and updates the local database.
+     * Fetches the transactions list and updates the local database.
      */
     fun refresh(accountId: String) {
         val account = database.accountDao().getById(accountId)
@@ -56,11 +56,18 @@ class TransactionRepository(
         database.accountDao().updateBalance(accountId, summary.balance)
     }
 
+    /**
+     * Saves a tx to the database.
+     */
     fun saveTx(tx: Tx, accountId: String) {
         val account = database.accountDao().getById(accountId)
-        val (_, externalChainAddresses, changeAddresses) =
-                fetcher.fetchTransactionsForAccount(account)
 
+        val externalChainAddresses = database.addressDao()
+                .getByAccount(account.id, false)
+                .map { it.address }
+        val changeAddresses = database.addressDao()
+                .getByAccount(account.id, true)
+                .map { it.address }
         val myAddresses = externalChainAddresses + changeAddresses
 
         val transaction = TransactionWithInOut.create(tx, accountId,

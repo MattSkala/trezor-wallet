@@ -4,6 +4,7 @@ import android.app.Application
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
+import android.speech.tts.TextToSpeech
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
@@ -11,10 +12,12 @@ import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
+import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
+import io.socket.engineio.client.EngineIOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -25,10 +28,11 @@ import org.kodein.di.generic.instance
  * A ViewModel for MainActivity.
  */
 class MainViewModel(app: Application) : BaseViewModel(app) {
-    val database: AppDatabase by instance()
-    val labeling: LabelingManager by instance()
-    val prefs: PreferenceHelper by instance()
-    val blockbookSocketService: BlockbookSocketService by instance()
+    private val database: AppDatabase by instance()
+    private val labeling: LabelingManager by instance()
+    private val prefs: PreferenceHelper by instance()
+    private val blockbookSocketService: BlockbookSocketService by instance()
+    private val transactionRepository: TransactionRepository by instance()
 
     val accounts: LiveData<List<Account>> by lazy {
         database.accountDao().getAllLiveData()
@@ -43,6 +47,33 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
 
     private var isAccountRequestLegacy = false
 
+    private val blockbookSubscriptionListener = object : BlockbookSocketService.SubscriptionListener {
+        override fun onHashblock(hash: String) {
+            GlobalScope.launch {
+                try {
+                    val info = blockbookSocketService.getInfo()
+                    prefs.blockHeight = info.blocks
+                } catch (e: EngineIOException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        override fun onAddressTxid(address: String, txid: String) {
+            GlobalScope.launch {
+                try {
+                    val tx = blockbookSocketService.getDetailedTransaction(txid)
+                    val addresses = database.addressDao().getByAddress(address)
+                    addresses.forEach {
+                        transactionRepository.saveTx(tx, it.account)
+                    }
+                } catch (e: EngineIOException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     init {
         labelingState.value = if (labeling.isEnabled())
             LabelingState.ENABLED else LabelingState.DISABLED
@@ -53,7 +84,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
             }
         }
 
-        blockbookSocketService.subscribe("bitcoind/hashblock")
+        initBlockbookSubscription()
     }
 
     enum class LabelingState {
@@ -61,6 +92,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     override fun onCleared() {
+        blockbookSocketService.removeSubscriptionListener(blockbookSubscriptionListener)
         blockbookSocketService.disconnect()
         super.onCleared()
     }
@@ -135,5 +167,23 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
             database.addressDao().deleteAll()
             prefs.clear()
         }.await()
+    }
+
+    private fun initBlockbookSubscription() {
+        blockbookSocketService.addSubscriptionListener(blockbookSubscriptionListener)
+
+        // Subscribe to new blocks
+        blockbookSocketService.subscribeHashblock()
+
+        GlobalScope.launch(Dispatchers.Default) {
+            // Subscribe to addresses
+            val accounts = database.accountDao().getAll()
+            accounts.forEach {  account ->
+                val addresses = database.addressDao()
+                        .getByAccount(account.id, false)
+                        .map { it.address }
+                blockbookSocketService.subscribeAddressTxid(addresses)
+            }
+        }
     }
 }
