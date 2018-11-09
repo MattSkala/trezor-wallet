@@ -11,7 +11,7 @@ class FifoCoinSelectorTest {
 
     private fun createUtxo(value: Long): TransactionOutput {
         return TransactionOutput("", "", "", 0, "",
-                value, null, true, false, "",
+                value, true, false, "",
                 null)
     }
 

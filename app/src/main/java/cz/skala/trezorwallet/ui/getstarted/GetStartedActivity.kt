@@ -31,7 +31,7 @@ class GetStartedActivity : BaseActivity() {
 
     private val viewModel: GetStartedViewModel by instance()
 
-    override fun provideOverridingModule() = Kodein.Module {
+    override fun provideOverridingModule() = Kodein.Module("GetStarted") {
         bind<GetStartedViewModel>() with provider {
             ViewModelProviders.of(this@GetStartedActivity)[GetStartedViewModel::class.java]
         }

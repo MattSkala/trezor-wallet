@@ -39,7 +39,7 @@ class TransactionDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDi
     private val labeling: LabelingManager by instance()
     private val viewModel: TransactionDetailViewModel by instance()
 
-    override fun provideOverridingModule() = Kodein.Module {
+    override fun provideOverridingModule() = Kodein.Module("TransactionDetail") {
         bind<TransactionDetailViewModel>() with provider {
             ViewModelProviders.of(this@TransactionDetailActivity)[TransactionDetailViewModel::class.java]
         }
