@@ -57,7 +57,7 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
 
         val opts = IO.Options()
         opts.transports = arrayOf(TRANSPORT)
-        val socket = IO.socket(TrezorApplication.BLOCKBOOK_API_HOST, opts)
+        val socket = IO.socket(TrezorApplication.BLOCKBOOK_API_URL, opts)
 
         socket.on(Socket.EVENT_CONNECT) {
             Log.d(TAG, "EVENT_CONNECT")

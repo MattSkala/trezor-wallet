@@ -1,15 +1,12 @@
 package cz.skala.trezorwallet.compose
 
-import android.util.Log
 import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.entity.FeeLevel
-import cz.skala.trezorwallet.insight.InsightApiService
 import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 import io.socket.engineio.client.EngineIOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
-import java.io.IOException
 
 /**
  * A helper class for fetching recommended fee rates.

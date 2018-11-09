@@ -1,6 +1,7 @@
 package cz.skala.trezorwallet.ui.transactions
 
 import android.annotation.SuppressLint
+import android.support.v4.content.res.ResourcesCompat
 import android.support.v7.widget.RecyclerView
 import android.text.TextUtils
 import android.view.LayoutInflater
@@ -153,7 +154,7 @@ class TransactionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 Transaction.Type.RECV -> R.color.colorPrimary
                 else -> R.color.colorRed
             }
-            txtValueBtc.setTextColor(resources.getColor(colorRes))
+            txtValueBtc.setTextColor(ResourcesCompat.getColor(resources, colorRes, null))
             txtValueUsd.text = formatPrice((value.toDouble() / BTC_TO_SATOSHI) * rate, currencyCode)
             txtValueUsd.visibility = View.VISIBLE
         }

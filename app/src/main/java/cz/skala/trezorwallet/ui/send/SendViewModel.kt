@@ -4,18 +4,14 @@ import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import com.satoshilabs.trezor.intents.ui.data.SignTxRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
+import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.compose.CoinSelector
 import cz.skala.trezorwallet.compose.FeeEstimator
 import cz.skala.trezorwallet.compose.TransactionComposer
-import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.FeeLevel
-import cz.skala.trezorwallet.exception.InsufficientFundsException
-import cz.skala.trezorwallet.blockbook.BlockbookApiService
-import cz.skala.trezorwallet.blockbook.BlockbookSocketService
-import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.data.repository.TransactionRepository
-import cz.skala.trezorwallet.insight.InsightApiService
+import cz.skala.trezorwallet.exception.InsufficientFundsException
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import cz.skala.trezorwallet.ui.btcToSat
@@ -25,7 +21,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
-import java.io.IOException
 
 /**
  * A ViewModel for SendFragment.

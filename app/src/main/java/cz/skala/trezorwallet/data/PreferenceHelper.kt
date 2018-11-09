@@ -24,6 +24,7 @@ class PreferenceHelper(context: Context) {
         private const val DROPBOX_TOKEN = "dropbox_token"
         private const val DEVICE_STATE = "device_state"
         private const val BLOCK_HEIGHT = "block_height"
+        private const val SYNC_HEIGHT = "sync_height"
     }
 
     private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -113,6 +114,13 @@ class PreferenceHelper(context: Context) {
     var blockHeight: Int
         get() = prefs.getInt(BLOCK_HEIGHT, 0)
         set(value) = prefs.edit().putInt(BLOCK_HEIGHT, value).apply()
+
+    /**
+     * The last synchronized block.
+     */
+    var syncHeight: Int
+        get() = prefs.getInt(SYNC_HEIGHT, 0)
+        set(value) = prefs.edit().putInt(SYNC_HEIGHT, value).apply()
 
     fun clear() {
         prefs.edit().clear().apply()

@@ -62,11 +62,15 @@ class TransactionFetcher(
     }
 
     fun fetchTransactions(addresses: List<String>, to: Int = Int.MAX_VALUE): List<Tx> = runBlocking {
-        val options = GetAddressHistoryOptions(start = prefs.blockHeight, to = to)
-        val result = blockbookSocketService.getAddressHistory(addresses, options)
-        val mempoolOptions = GetAddressHistoryOptions(start = prefs.blockHeight, to = to, queryMempoolOnly = true)
-        val mempoolResult = blockbookSocketService.getAddressHistory(addresses, mempoolOptions)
-        result.items.map { it.tx } + mempoolResult.items.map { it.tx }
+        val confirmed = fetchTransactions(addresses, to, true)
+        val unconfirmed = fetchTransactions(addresses, to, true)
+        confirmed + unconfirmed
+    }
 
+    private suspend fun fetchTransactions(addresses: List<String>, to: Int, mempool: Boolean): List<Tx> {
+        val options = GetAddressHistoryOptions(start = prefs.blockHeight, end = prefs.syncHeight,
+                to = to, queryMempoolOnly = mempool)
+        val result = blockbookSocketService.getAddressHistory(addresses, options)
+        return result.items.map { it.tx }
     }
 }
