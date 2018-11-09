@@ -68,6 +68,12 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                     // Fetch current block height
                     val info = blockbookSocketService.getInfo()
                     prefs.blockHeight = info.blocks
+
+                    // Refresh transactions
+                    val accounts = database.accountDao().getAll()
+                    accounts.forEach {
+                        transactionRepository.refresh(it.id)
+                    }
                 } catch (e: EngineIOException) {
                     e.printStackTrace()
                 }
