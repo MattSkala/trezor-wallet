@@ -4,9 +4,6 @@ import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.entity.FeeLevel
 import cz.skala.trezorwallet.ui.BTC_TO_SATOSHI
 import io.socket.engineio.client.EngineIOException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 
 /**
  * A helper class for fetching recommended fee rates.
@@ -30,22 +27,20 @@ class FeeEstimator(
      */
     @Throws(EngineIOException::class)
     suspend fun fetchRecommendedFees(): Map<FeeLevel, Int>? {
-        return GlobalScope.async(Dispatchers.Default) {
-            val recommendedFees = mutableMapOf<FeeLevel, Int>()
+        val recommendedFees = mutableMapOf<FeeLevel, Int>()
 
-            FeeLevel.values().forEach {
-                val btcPerKb = blockbookSocketService.estimateSmartFee(it.blocks, false)
+        FeeLevel.values().forEach {
+            val btcPerKb = blockbookSocketService.estimateSmartFee(it.blocks, false)
 
-                // Convert BTC/kB to sat/B
-                var satPerB = (btcPerKb * BTC_TO_SATOSHI / 1000).toInt()
+            // Convert BTC/kB to sat/B
+            var satPerB = (btcPerKb * BTC_TO_SATOSHI / 1000).toInt()
 
-                // Set minimal fee as 1 sat/B
-                satPerB = Math.max(satPerB, MINIMUM_FEE)
+            // Set minimal fee as 1 sat/B
+            satPerB = Math.max(satPerB, MINIMUM_FEE)
 
-                recommendedFees[it] = satPerB
-            }
+            recommendedFees[it] = satPerB
+        }
 
-            recommendedFees
-        }.await()
+        return recommendedFees
     }
 }

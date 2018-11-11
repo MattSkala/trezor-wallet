@@ -16,9 +16,6 @@ import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import cz.skala.trezorwallet.ui.btcToSat
 import io.socket.engineio.client.EngineIOException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.kodein.di.generic.instance
 
@@ -65,11 +62,10 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
      * @param [fee] Mining fee in satoshis per byte.
      */
     fun composeTransaction(accountId: String, address: String, amount: Long, fee: Int) {
-        GlobalScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             try {
-                val (tx, inputTransactions) = GlobalScope.async(Dispatchers.Default) {
-                    composer.composeTransaction(accountId, address, amount, fee)
-                }.await()
+                val (tx, inputTransactions) =
+                        composer.composeTransaction(accountId, address, amount, fee)
                 val signRequest = SignTxRequest(tx, inputTransactions)
                 trezorRequest.value = signRequest
             } catch (e: InsufficientFundsException) {
@@ -79,7 +75,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun sendTransaction(rawtx: String) {
-        GlobalScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             sending.value = true
             try {
                 val txid = sendTx(rawtx)
@@ -87,26 +83,24 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
                 amountBtc.value = 0.0
                 amountUsd.value = 0.0
 
-                sending.value = false
                 onTxSent.value = txid
             } catch (e: Exception) {
                 e.printStackTrace()
-                sending.value = false
                 onTxSent.value = null
+            } finally {
+                sending.value = false
             }
         }
     }
 
     private suspend fun sendTx(rawtx: String): String {
-        return GlobalScope.async(Dispatchers.Default) {
-            val txid = blockbookSocketService.sendTransaction(rawtx)
+        val txid = blockbookSocketService.sendTransaction(rawtx)
 
-            // fetch new tx
-            val tx = blockbookSocketService.getDetailedTransaction(txid)
-            transactionRepository.saveTx(tx, accountId)
+        // fetch new tx
+        val tx = blockbookSocketService.getDetailedTransaction(txid)
+        transactionRepository.saveTx(tx, accountId)
 
-            txid
-        }.await()
+        return txid
     }
 
     fun setAmountBtc(value: Double) {
@@ -133,7 +127,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     private fun fetchRecommendedFees() {
-        GlobalScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             try {
                 val fees = feeEstimator.fetchRecommendedFees()
                 if (fees != null) {

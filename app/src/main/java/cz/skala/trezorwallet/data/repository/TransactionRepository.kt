@@ -9,24 +9,40 @@ import cz.skala.trezorwallet.discovery.BalanceCalculator
 import cz.skala.trezorwallet.discovery.TransactionFetcher
 import cz.skala.trezorwallet.labeling.AccountMetadata
 import cz.skala.trezorwallet.labeling.LabelingManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class TransactionRepository(
-        val database: AppDatabase,
-        val fetcher: TransactionFetcher,
-        val labeling: LabelingManager,
-        val balanceCalculator: BalanceCalculator) {
+        private val database: AppDatabase,
+        private val fetcher: TransactionFetcher,
+        private val labeling: LabelingManager,
+        private val balanceCalculator: BalanceCalculator) {
 
     /**
      * Gets observable transactions list for a specific account.
      */
-    fun getByAccount(accountId: String): LiveData<List<TransactionWithInOut>> {
+    fun getByAccountLiveDataWithInOut(accountId: String): LiveData<List<TransactionWithInOut>> {
         return database.transactionDao().getByAccountLiveDataWithInOut(accountId)
+    }
+
+    suspend fun getByAccount(accountId: String): List<Transaction> =
+            withContext(Dispatchers.IO) {
+        database.transactionDao().getByAccount(accountId)
+    }
+
+    suspend fun insert(output: TransactionOutput) = withContext(Dispatchers.IO) {
+        database.transactionDao().insert(output)
+    }
+
+    suspend fun getByTxid(account: String, txid: String): TransactionWithInOut =
+            withContext(Dispatchers.IO) {
+        database.transactionDao().getByTxid(account, txid)
     }
 
     /**
      * Fetches the transactions list and updates the local database.
      */
-    fun refresh(accountId: String) {
+    suspend fun refresh(accountId: String) = withContext(Dispatchers.Default) {
         val account = database.accountDao().getById(accountId)
         val (txs, externalChainAddresses, changeAddresses) =
                 fetcher.fetchTransactionsForAccount(account)
@@ -59,7 +75,7 @@ class TransactionRepository(
     /**
      * Saves a tx to the database.
      */
-    fun saveTx(tx: Tx, accountId: String) {
+    suspend fun saveTx(tx: Tx, accountId: String) = withContext(Dispatchers.IO) {
         val account = database.accountDao().getById(accountId)
 
         val externalChainAddresses = database.addressDao()

@@ -9,6 +9,8 @@ import cz.skala.trezorwallet.data.entity.TransactionOutput
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.exception.InsufficientFundsException
 import cz.skala.trezorwallet.sumByLong
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * The transaction composer builds an unsigned transaction using UTXOs on a specified account.
@@ -30,8 +32,9 @@ class TransactionComposer(
      * transactions with TXIDs as keys.
      */
     @Throws(InsufficientFundsException::class)
-    fun composeTransaction(accountId: String, address: String, amount: Long, feeRate: Int):
-            Pair<TrezorType.TransactionType, Map<String, TrezorType.TransactionType>> {
+    suspend fun composeTransaction(accountId: String, address: String, amount: Long, feeRate: Int):
+            Pair<TrezorType.TransactionType, Map<String, TrezorType.TransactionType>> =
+            withContext(Dispatchers.Default) {
         val account = database.accountDao().getById(accountId)
         val utxoSet = getUtxoSet(account)
 
@@ -64,7 +67,7 @@ class TransactionComposer(
             }
         }
 
-        return Pair(transaction, referencedTransactions)
+        Pair(transaction, referencedTransactions)
     }
 
     /**

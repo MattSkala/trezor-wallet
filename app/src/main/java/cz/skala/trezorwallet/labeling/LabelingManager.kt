@@ -21,10 +21,9 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
 import cz.skala.trezorwallet.data.entity.TransactionOutput
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
+import cz.skala.trezorwallet.data.repository.AccountRepository
+import cz.skala.trezorwallet.data.repository.AddressRepository
+import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -38,7 +37,9 @@ import java.security.InvalidKeyException
 class LabelingManager(
         private val context: Context,
         private val prefs: PreferenceHelper,
-        private val database: AppDatabase
+        private val database: AppDatabase,
+        private val accountRepository: AccountRepository,
+        private val addressRepository: AddressRepository
 ) {
     companion object {
         private const val CIPHER_KEY = "Enable labeling?"
@@ -120,21 +121,17 @@ class LabelingManager(
      * Enables labeling by setting the master key.
      */
     suspend fun enableLabeling(masterKey: ByteArray) {
-        GlobalScope.async(Dispatchers.Default) {
-            setMasterKey(masterKey)
-            downloadAccountsMetadata()
-        }.await()
+        setMasterKey(masterKey)
+        downloadAccountsMetadata()
     }
 
     /**
      * Deletes all metadata files, clears labels in the database and removes the master key.
      */
     suspend fun disableLabeling() {
-        GlobalScope.async(Dispatchers.Default) {
-            removeMetadataFiles()
-            clearDatabaseLabels()
-            setMasterKey(null)
-        }.await()
+        removeMetadataFiles()
+        clearDatabaseLabels()
+        setMasterKey(null)
     }
 
     /**
@@ -146,16 +143,14 @@ class LabelingManager(
         val savedLabel = if (label != defaultLabel) label else null
         account.label = savedLabel
 
-        GlobalScope.async(Dispatchers.Default) {
-            database.accountDao().insert(account)
+        accountRepository.insert(account)
 
-            val metadata = loadMetadata(account)
-            if (metadata != null) {
-                metadata.accountLabel = label
-                saveMetadata(account, metadata)
-                uploadAccountMetadata(account)
-            }
-        }.await()
+        val metadata = loadMetadata(account)
+        if (metadata != null) {
+            metadata.accountLabel = label
+            saveMetadata(account, metadata)
+            uploadAccountMetadata(account)
+        }
     }
 
     /**
@@ -164,17 +159,15 @@ class LabelingManager(
     suspend fun setAddressLabel(address: Address, label: String) {
         address.label = label
 
-        GlobalScope.async(Dispatchers.Default) {
-            database.addressDao().insert(address)
+        addressRepository.insert(address)
 
-            val account = database.accountDao().getById(address.account)
-            val metadata = loadMetadata(account)
-            if (metadata != null) {
-                metadata.setAddressLabel(address.address, label)
-                saveMetadata(account, metadata)
-                uploadAccountMetadata(account)
-            }
-        }.await()
+        val account = accountRepository.getById(address.account)
+        val metadata = loadMetadata(account)
+        if (metadata != null) {
+            metadata.setAddressLabel(address.address, label)
+            saveMetadata(account, metadata)
+            uploadAccountMetadata(account)
+        }
     }
 
     /**
@@ -183,27 +176,27 @@ class LabelingManager(
     suspend fun setOutputLabel(output: TransactionOutput, label: String) {
         output.label = label
 
-        GlobalScope.async(Dispatchers.Default) {
+        withContext(Dispatchers.IO) {
             database.transactionDao().insert(output)
+        }
 
-            val account = database.accountDao().getById(output.account)
-            val metadata = loadMetadata(account)
-            if (metadata != null) {
-                metadata.setOutputLabel(output.txid, output.n, label)
-                saveMetadata(account, metadata)
-                uploadAccountMetadata(account)
-            }
-        }.await()
+        val account = accountRepository.getById(output.account)
+        val metadata = loadMetadata(account)
+        if (metadata != null) {
+            metadata.setOutputLabel(output.txid, output.n, label)
+            saveMetadata(account, metadata)
+            uploadAccountMetadata(account)
+        }
     }
 
     /**
      * Loads metadata from file for the specified account.
      */
-    fun loadMetadata(account: Account): AccountMetadata? {
+    suspend fun loadMetadata(account: Account): AccountMetadata? = withContext(Dispatchers.IO) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accountKey = deriveAccountKey(masterKey, account.xpub)
         val (filename, password) = deriveFilenameAndPassword(accountKey)
-        return loadMetadataFromFile(filename, password) ?: AccountMetadata()
+        loadMetadataFromFile(filename, password) ?: AccountMetadata()
     }
 
     /**
@@ -223,7 +216,8 @@ class LabelingManager(
     /**
      * Save metadata to file.
      */
-    private fun saveMetadata(account: Account, metadata: AccountMetadata) {
+    private suspend fun saveMetadata(account: Account, metadata: AccountMetadata) =
+            withContext(Dispatchers.IO) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accountKey = deriveAccountKey(masterKey, account.xpub)
         val (filename, password) = deriveFilenameAndPassword(accountKey)
@@ -257,7 +251,7 @@ class LabelingManager(
      * Removes metadata files for all accounts. Should be called before disabling labeling or
      * forgetting the device.
      */
-    private fun removeMetadataFiles() {
+    private suspend fun removeMetadataFiles() = withContext(Dispatchers.IO) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accounts = database.accountDao().getAll()
         accounts.forEach {
@@ -271,7 +265,7 @@ class LabelingManager(
     /**
      * Removes all labels from the database.
      */
-    private fun clearDatabaseLabels() {
+    private suspend fun clearDatabaseLabels() = withContext(Dispatchers.IO) {
         database.accountDao().clearLabels()
         database.addressDao().clearLabels()
         database.transactionDao().clearLabels()
@@ -280,8 +274,8 @@ class LabelingManager(
     /**
      * Fetches metadata for all accounts from Dropbox and updates labels in the database.
      */
-    fun downloadAccountsMetadata() {
-        val accounts = database.accountDao().getAll()
+    suspend fun downloadAccountsMetadata() {
+        val accounts = accountRepository.getAll()
         accounts.forEach {
             downloadAccountMetadata(it)
             updateDatabaseLabels(it)
@@ -302,7 +296,7 @@ class LabelingManager(
     /**
      * Fetches account metadata from Dropbox.
      */
-    fun downloadAccountMetadata(account: Account) {
+    suspend fun downloadAccountMetadata(account: Account) = withContext(Dispatchers.IO) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accountKey = deriveAccountKey(masterKey, account.xpub)
         val (filename, _) = deriveFilenameAndPassword(accountKey)
@@ -329,7 +323,7 @@ class LabelingManager(
     /**
      * Updates database labels from the account metadata file.
      */
-    private fun updateDatabaseLabels(account: Account) {
+    private suspend fun updateDatabaseLabels(account: Account) = withContext(Dispatchers.IO) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accountKey = deriveAccountKey(masterKey, account.xpub)
         val (filename, password) = deriveFilenameAndPassword(accountKey)
@@ -360,7 +354,7 @@ class LabelingManager(
     /**
      * Uploads account metadata file to Dropbox.
      */
-    private fun uploadAccountMetadata(account: Account) {
+    private suspend fun uploadAccountMetadata(account: Account) = withContext(Dispatchers.IO) {
         val masterKey = getMasterKey() ?: throw InvalidKeyException("Master key is null")
         val accountKey = deriveAccountKey(masterKey, account.xpub)
         val (filename, _) = deriveFilenameAndPassword(accountKey)

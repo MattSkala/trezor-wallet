@@ -3,14 +3,10 @@ package cz.skala.trezorwallet.ui.transactions
 import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
-import android.util.Log
-import cz.skala.trezorwallet.blockbook.BlockbookSocketService
-import cz.skala.trezorwallet.blockbook.options.GetAddressHistoryOptions
 import cz.skala.trezorwallet.coinmarketcap.CoinMarketCapClient
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
-import cz.skala.trezorwallet.data.entity.Transaction
 import cz.skala.trezorwallet.data.entity.TransactionWithInOut
 import cz.skala.trezorwallet.data.item.AccountSummaryItem
 import cz.skala.trezorwallet.data.item.DateItem
@@ -20,11 +16,11 @@ import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.BalanceCalculator
 import cz.skala.trezorwallet.ui.BaseViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.kodein.di.KodeinAware
 import org.kodein.di.generic.instance
+import java.io.IOException
 
 
 /**
@@ -48,7 +44,7 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     private var summary = AccountSummary(0L, 0L)
 
     private val transactionsLiveData by lazy {
-        transactionRepository.getByAccount(accountId)
+        transactionRepository.getByAccountLiveDataWithInOut(accountId)
     }
 
     private val transactionsObserver = Observer<List<TransactionWithInOut>> { txs ->
@@ -76,12 +72,10 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     }
 
     fun fetchTransactions(showProgress: Boolean = true) {
-        GlobalScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             if (showProgress) refreshing.value = true
             try {
-                GlobalScope.async(Dispatchers.Default) {
-                    transactionRepository.refresh(accountId)
-                }.await()
+                transactionRepository.refresh(accountId)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -90,13 +84,13 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
     }
 
     fun removeAccount() {
-        GlobalScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(Dispatchers.IO) {
             database.accountDao().deleteById(accountId)
         }
     }
 
     private fun loadAccount() {
-        GlobalScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             account.value = async(Dispatchers.Default) {
                 database.accountDao().getById(accountId)
             }.await()
@@ -107,11 +101,11 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
         transactionsLiveData.observeForever(transactionsObserver)
     }
 
-    private fun fetchRate() = GlobalScope.launch(Dispatchers.Main) {
+    private fun fetchRate() = viewModelScope.launch {
         try {
             prefs.rate = coinMarketCapClient.fetchRate(prefs.currencyCode).toFloat()
             updateItems()
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             e.printStackTrace()
         }
     }

@@ -1,8 +1,6 @@
 package cz.skala.trezorwallet.coinmarketcap
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
@@ -24,22 +22,22 @@ class CoinMarketCapClient {
      * @param currency The currency code.
      * @return The BTC/fiat exchange rate.
      */
+    @Throws(IOException::class)
     suspend fun fetchRate(currency: String): Double {
-        return GlobalScope.async(Dispatchers.Default) {
-            val url = "$API_URL?convert=$currency"
-            val body = fetchStringBody(url)
-            val jsonArray = JSONArray(body)
-            val jsonItem = jsonArray.getJSONObject(0)
-            val price = jsonItem.getString("price_" + currency.toLowerCase())
-            price.toDouble()
-        }.await()
+        val url = "$API_URL?convert=$currency"
+        val body = fetchStringBody(url)
+        val jsonArray = JSONArray(body)
+        val jsonItem = jsonArray.getJSONObject(0)
+        val price = jsonItem.getString("price_" + currency.toLowerCase())
+        return price.toDouble()
     }
 
-    private fun fetchStringBody(url: String): String {
+    @Throws(IOException::class)
+    private suspend fun fetchStringBody(url: String): String = withContext(Dispatchers.IO) {
         val request = Request.Builder().url(url).build()
         val response = client.newCall(request).execute()
         if (!response.isSuccessful) throw IOException("Unexpected code: $response")
         val body = response.body() ?: throw IOException("Response body is null")
-        return body.string()
+        body.string()
     }
 }

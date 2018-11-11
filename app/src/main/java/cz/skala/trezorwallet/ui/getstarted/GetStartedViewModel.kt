@@ -16,9 +16,9 @@ import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import io.socket.engineio.client.EngineIOException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.kodein.di.generic.instance
 
 class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
@@ -52,18 +52,18 @@ class GetStartedViewModel(val app: Application) : BaseViewModel(app) {
     }
 
     private fun scanAccount(node: TrezorType.HDNodeType, xpub: String) {
-        GlobalScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             val index = node.childNum - ExtendedPublicKey.HARDENED_IDX.toInt()
 
             try {
-                val hasTransactions = GlobalScope.async(Dispatchers.Default) {
+                val hasTransactions = withContext(Dispatchers.Default) {
                     val hasTransactions = accountDiscovery.scanAccount(node, legacy)
                     if (hasTransactions || (!legacy && index == 0)) {
                         val account = saveAccount(node, xpub, legacy)
                         transactionRepository.refresh(account.id)
                     }
                     hasTransactions
-                }.await()
+                }
 
                 if (hasTransactions) {
                     onPublicKeyRequest.value = PublicKeyRequest(index + 1, legacy)

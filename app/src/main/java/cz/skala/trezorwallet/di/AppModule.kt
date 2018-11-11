@@ -11,6 +11,8 @@ import cz.skala.trezorwallet.compose.FifoCoinSelector
 import cz.skala.trezorwallet.compose.TransactionComposer
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
+import cz.skala.trezorwallet.data.repository.AccountRepository
+import cz.skala.trezorwallet.data.repository.AddressRepository
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.discovery.BalanceCalculator
@@ -63,8 +65,16 @@ fun appModule(applicationContext: Application): Kodein.Module {
             TransactionRepository(instance(), instance(), instance(), instance())
         }
 
+        bind<AccountRepository>() with singleton {
+            AccountRepository(instance())
+        }
+
+        bind<AddressRepository>() with singleton {
+            AddressRepository(instance())
+        }
+
         bind<LabelingManager>() with singleton {
-            LabelingManager(applicationContext, instance(), instance())
+            LabelingManager(applicationContext, instance(), instance(), instance(), instance())
         }
 
         bind<BlockbookSocketService>() with singleton {

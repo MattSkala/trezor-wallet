@@ -1,12 +1,12 @@
 package cz.skala.trezorwallet.ui.addressdetail
 
+import android.arch.lifecycle.Observer
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -15,7 +15,6 @@ import com.satoshilabs.trezor.intents.ui.data.CheckAddressRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
-import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
 import cz.skala.trezorwallet.data.entity.Address
@@ -23,13 +22,7 @@ import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.BaseActivity
 import cz.skala.trezorwallet.ui.LabelDialogFragment
 import kotlinx.android.synthetic.main.activity_address_detail.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
 import net.glxn.qrgen.android.QRCode
-import org.kodein.di.KodeinAware
-import org.kodein.di.android.closestKodein
 import org.kodein.di.generic.instance
 
 
@@ -41,38 +34,51 @@ class AddressDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDialog
         const val EXTRA_ADDRESS = "address"
     }
 
-    private val database: AppDatabase by instance()
+    private val viewModel: AddressDetailViewModel by instance()
+
     private val labeling: LabelingManager by instance()
     private val prefs: PreferenceHelper by instance()
 
-    private var account: Account? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
+        viewModel.start(address)
 
         setContentView(R.layout.activity_address_detail)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
 
-        val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
         txtAddress.text = address.address
-
-        updateActionBarTitle(address)
 
         btnCopy.setOnClickListener {
             copyToClipboard(address)
         }
 
         btnShow.setOnClickListener {
-            account?.let { account ->
-                showOnTrezor(address, account)
-            }
+            viewModel.showOnTrezor()
         }
 
-        loadAccount(address)
-
         showQrCode(address)
+
+        viewModel.addressLabel.observe(this, Observer {
+            supportActionBar?.title = it
+        })
+
+        viewModel.accountLabel.observe(this, Observer {
+            txtAccountLabel.text = it
+        })
+
+        viewModel.derivationPath.observe(this, Observer {
+            txtAddressPath.text = it
+        })
+
+        viewModel.showOnTrezorRequest.observe(this, Observer {
+            if (it != null) {
+                showOnTrezor(it.first, it.second)
+            }
+        })
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -97,27 +103,7 @@ class AddressDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDialog
     }
 
     override fun onTextChanged(text: String) {
-        val address = intent.getParcelableExtra<Address>(EXTRA_ADDRESS)
-        GlobalScope.launch(Dispatchers.Main) {
-            labeling.setAddressLabel(address, text)
-            updateActionBarTitle(address)
-        }
-    }
-
-    private fun updateActionBarTitle(address: Address) {
-        supportActionBar?.title = if (address.label.isNullOrEmpty())
-            resources.getString(R.string.address) else address.label
-    }
-
-    private fun loadAccount(address: Address) {
-        GlobalScope.launch(Dispatchers.Main) {
-            val acc = GlobalScope.async(Dispatchers.Default) {
-                database.accountDao().getById(address.account)
-            }.await()
-            account = acc
-            txtAccountLabel.text = acc.getDisplayLabel(resources)
-            txtAddressPath.text = address.getPathString(acc)
-        }
+        viewModel.setAddressLabel(text)
     }
 
     private fun copyToClipboard(address: Address) {

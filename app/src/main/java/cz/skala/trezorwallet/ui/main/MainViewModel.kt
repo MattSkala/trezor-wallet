@@ -3,8 +3,6 @@ package cz.skala.trezorwallet.ui.main
 import android.app.Application
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
-import android.speech.tts.TextToSpeech
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
@@ -12,16 +10,15 @@ import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
 import cz.skala.trezorwallet.data.entity.Account
+import cz.skala.trezorwallet.data.repository.AccountRepository
+import cz.skala.trezorwallet.data.repository.AddressRepository
 import cz.skala.trezorwallet.data.repository.TransactionRepository
 import cz.skala.trezorwallet.discovery.AccountDiscoveryManager
 import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.BaseViewModel
 import cz.skala.trezorwallet.ui.SingleLiveEvent
 import io.socket.engineio.client.EngineIOException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.kodein.di.generic.instance
 
 /**
@@ -33,9 +30,11 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     private val prefs: PreferenceHelper by instance()
     private val blockbookSocketService: BlockbookSocketService by instance()
     private val transactionRepository: TransactionRepository by instance()
+    private val accountRepository: AccountRepository by instance()
+    private val addressRepository: AddressRepository by instance()
 
     val accounts: LiveData<List<Account>> by lazy {
-        database.accountDao().getAllLiveData()
+        accountRepository.getAllLiveData()
     }
 
     val selectedAccount = MutableLiveData<Account>()
@@ -49,7 +48,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
 
     private val blockbookConnectionListener = object : BlockbookSocketService.ConnectionListener {
         override fun onConnect() {
-            GlobalScope.launch {
+            viewModelScope.launch {
                 val info = blockbookSocketService.getInfo()
                 prefs.blockHeight = info.blocks
 
@@ -63,14 +62,14 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
 
     private val blockbookSubscriptionListener = object : BlockbookSocketService.SubscriptionListener {
         override fun onHashblock(hash: String) {
-            GlobalScope.launch {
+            viewModelScope.launch {
                 try {
                     // Fetch current block height
                     val info = blockbookSocketService.getInfo()
                     prefs.blockHeight = info.blocks
 
                     // Refresh transactions
-                    val accounts = database.accountDao().getAll()
+                    val accounts = accountRepository.getAll()
                     accounts.forEach {
                         transactionRepository.refresh(it.id)
                     }
@@ -81,11 +80,11 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
         }
 
         override fun onAddressTxid(address: String, txid: String) {
-            GlobalScope.launch {
+            viewModelScope.launch {
                 try {
                     // Fetch the transaction and save it to the database
                     val tx = blockbookSocketService.getDetailedTransaction(txid)
-                    val addresses = database.addressDao().getByAddress(address)
+                    val addresses = addressRepository.getByAddress(address)
                     addresses.forEach {
                         transactionRepository.saveTx(tx, it.account)
                     }
@@ -101,7 +100,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
             LabelingState.ENABLED else LabelingState.DISABLED
 
         if (labeling.isEnabled()) {
-            GlobalScope.launch(Dispatchers.Default) {
+            viewModelScope.launch {
                 labeling.downloadAccountsMetadata()
             }
         }
@@ -133,15 +132,12 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun addAccount(legacy: Boolean) {
-        GlobalScope.launch(Dispatchers.Main) {
-            val lastAccount = async(Dispatchers.Default) {
-                 database.accountDao().getAll().lastOrNull { it.legacy == legacy }
-            }.await()
+        viewModelScope.launch {
+            val lastAccount = accountRepository.getAll()
+                    .lastOrNull { it.legacy == legacy }
 
             val lastAccountTransactions = if (lastAccount != null) {
-                async(Dispatchers.Default) {
-                    database.transactionDao().getByAccount(lastAccount.id).size
-                }.await()
+                transactionRepository.getByAccount(lastAccount.id).size
             } else 0
 
             if (lastAccount == null || lastAccountTransactions > 0) {
@@ -156,22 +152,22 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     }
 
     fun saveAccount(node: TrezorType.HDNodeType, xpub: String) {
-        GlobalScope.launch(Dispatchers.Default) {
+        viewModelScope.launch {
             val account = Account.fromNode(node, xpub, isAccountRequestLegacy)
-            database.accountDao().insert(account)
+            accountRepository.insert(account)
 
             // Update Blockbook subscription
             initBlockbookSubscription()
         }
     }
 
-    fun enableLabeling(masterKey: ByteArray) = GlobalScope.launch(Dispatchers.Main) {
+    fun enableLabeling(masterKey: ByteArray) = viewModelScope.launch {
         labelingState.value = LabelingState.SYNCING
         labeling.enableLabeling(masterKey)
         labelingState.value = LabelingState.ENABLED
     }
 
-    fun disableLabeling() = GlobalScope.launch(Dispatchers.Main) {
+    fun disableLabeling() = viewModelScope.launch {
         labeling.disableLabeling()
         labelingState.value = LabelingState.DISABLED
     }
@@ -183,30 +179,31 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
     /**
      * Updates currently selected account label.
      */
-    fun setAccountLabel(label: String) = GlobalScope.launch(Dispatchers.Main) {
+    fun setAccountLabel(label: String) = viewModelScope.launch {
         val account = selectedAccount.value!!
         labeling.setAccountLabel(account, label)
     }
 
-    fun forgetDevice() = GlobalScope.launch(Dispatchers.Main) {
+    fun forgetDevice() = viewModelScope.launch {
         disconnectBlockbook()
 
         if (labeling.isEnabled()) {
             labeling.disableLabeling()
         }
-        async(Dispatchers.Default) {
+
+        withContext(Dispatchers.IO) {
             database.accountDao().deleteAll()
             database.transactionDao().deleteAll()
             database.addressDao().deleteAll()
             prefs.clear()
-        }.await()
+        }
     }
 
-    private fun initBlockbookSubscription() {
+    suspend fun initBlockbookSubscription() {
         // Subscribe to new blocks
         blockbookSocketService.subscribeHashblock()
 
-        GlobalScope.launch(Dispatchers.Default) {
+        withContext(Dispatchers.Default) {
             // Subscribe to new transactions on external chain addresses
             val accounts = database.accountDao().getAll()
             accounts.forEach {  account ->

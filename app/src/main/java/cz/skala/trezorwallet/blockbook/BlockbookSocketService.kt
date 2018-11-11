@@ -12,18 +12,10 @@ import cz.skala.trezorwallet.data.PreferenceHelper
 import io.socket.client.Ack
 import io.socket.client.IO
 import io.socket.client.Socket
-import io.socket.emitter.Emitter
-import io.socket.parser.IOParser
 import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.logging.Handler
-import java.util.logging.Level
-import java.util.logging.LogRecord
-import java.util.logging.Logger
 import kotlin.coroutines.resume
 
 
