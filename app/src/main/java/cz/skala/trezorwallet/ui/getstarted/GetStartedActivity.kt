@@ -84,7 +84,7 @@ class GetStartedActivity : BaseActivity() {
     }
 
     private fun getPublicKeyForAccount(i: Int, legacy: Boolean) {
-        val request = AccountDiscoveryManager.createGetPublicKeyRequest(i, legacy)
+        val request = AccountDiscoveryManager.createGetPublicKeyRequest(i, legacy, null)
         val intent = TrezorActivity.createIntent(this, request)
         startActivityForResult(intent, REQUEST_GET_PUBLIC_KEY)
     }

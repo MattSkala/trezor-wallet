@@ -1,19 +1,21 @@
 package cz.skala.trezorwallet.discovery
 
 import android.util.Log
+import com.google.protobuf.ByteString
 import com.satoshilabs.trezor.intents.ui.data.GenericRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.BuildConfig
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
+import cz.skala.trezorwallet.data.PreferenceHelper
 import java.security.InvalidKeyException
 
 
 /**
  * Account discovery algorithm as defined in BIP 44.
  */
-class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
+class AccountDiscoveryManager(val fetcher: TransactionFetcher, val prefs: PreferenceHelper) {
     companion object {
         const val TAG = "AccountDiscoveryManager"
         const val GAP_SIZE = 20
@@ -21,7 +23,7 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
         const val PURPOSE_BIP44 = 44
         const val PURPOSE_BIP49 = 49
 
-        fun createGetPublicKeyRequest(i: Int, legacy: Boolean): TrezorRequest {
+        fun createGetPublicKeyRequest(i: Int, legacy: Boolean, deviceState: ByteString?): TrezorRequest {
             val purpose = if (legacy) ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP44 else
                 ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP49
             val coinType = ExtendedPublicKey.HARDENED_IDX + BuildConfig.COIN_TYPE
@@ -31,7 +33,7 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
                     .addAddressN(coinType.toInt())
                     .addAddressN(account.toInt())
                     .build()
-            return GenericRequest(message)
+            return GenericRequest(message, deviceState)
         }
     }
 

@@ -145,7 +145,8 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                 val newIndex = if (lastAccount != null) lastAccount.index + 1 else 0
                 isAccountRequestLegacy = legacy
                 onTrezorRequest.value =
-                        AccountDiscoveryManager.createGetPublicKeyRequest(newIndex, legacy)
+                        AccountDiscoveryManager.createGetPublicKeyRequest(newIndex, legacy,
+                                prefs.deviceState)
             } else {
                 onLastAccountEmpty.call()
             }
