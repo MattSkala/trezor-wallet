@@ -23,7 +23,7 @@ android {
     }
     compileSdkVersion project.ext.sdk
     defaultConfig {
-        applicationId "cz.skala.trezorwallet"
+        applicationId "com.mattskala.trezorwallet"
         minSdkVersion project.ext.minsdk
         targetSdkVersion project.ext.sdk
         versionCode 1
@@ -40,16 +40,16 @@ android {
     }
     flavorDimensions "coin"
     productFlavors {
-        btc {
+        bitcoin {
             dimension "coin"
             buildConfigField("String", "COIN_NAME", "\"Bitcoin\"")
             buildConfigField("int", "COIN_TYPE", "0")
             buildConfigField("String", "BLOCKBOOK_URL", "\"https://btc1.trezor.io\"")
         }
-        btcTestnet {
+        testnet {
             dimension "coin"
             applicationIdSuffix ".testnet"
-            versionNameSuffix " Testnet"
+            versionNameSuffix "-testnet"
             buildConfigField("String", "COIN_NAME", "\"Testnet\"")
             buildConfigField("int", "COIN_TYPE", "1")
             buildConfigField("String", "BLOCKBOOK_URL", "\"https://tbtc1.trezor.io\"")
