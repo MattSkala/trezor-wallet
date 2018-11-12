@@ -30,7 +30,7 @@ class FeeEstimator(
         val recommendedFees = mutableMapOf<FeeLevel, Int>()
 
         FeeLevel.values().forEach {
-            val btcPerKb = blockbookSocketService.estimateSmartFee(it.blocks, false)
+            val btcPerKb = blockbookSocketService.estimateSmartFee(it.blocks, true)
 
             // Convert BTC/kB to sat/B
             var satPerB = (btcPerKb * BTC_TO_SATOSHI / 1000).toInt()
