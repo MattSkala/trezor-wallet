@@ -127,8 +127,12 @@ class SendFragment : BaseFragment() {
                 edtAmountUsd.text = null
 
                 (activity as MainActivity).showTransactions()
-            } else {
-                Toast.makeText(context!!, R.string.sending_failed, Toast.LENGTH_LONG).show()
+            }
+        })
+
+        viewModel.onError.observe(this, Observer {
+            if (it != null) {
+                Toast.makeText(context!!, it, Toast.LENGTH_LONG).show()
             }
         })
 

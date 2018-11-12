@@ -17,6 +17,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 /**
@@ -36,6 +37,8 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         private const val METHOD = "method"
         private const val PARAMS = "params"
         private const val RESULT = "result"
+        private const val ERROR = "error"
+        private const val MESSAGE = "message"
         private const val SUBSCRIBE = "subscribe"
 
         private const val BITCOIND_HASHBLOCK = "bitcoind/hashblock"
@@ -74,7 +77,7 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
 
             while (suspendedCoroutines.isNotEmpty()) {
                 val item = suspendedCoroutines.removeAt(0)
-                item.cancel(it[0] as Exception)
+                item.cancel(BlockbookException("Connection error", it[0] as Exception))
             }
         }.on(Socket.EVENT_ERROR) {
             Log.d(TAG, "EVENT_ERROR: " + it[0])
@@ -112,6 +115,7 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         socket.disconnect()
     }
 
+    @Throws(BlockbookException::class)
     private suspend fun sendMessage(body: JSONObject) = suspendCancellableCoroutine<Any> { cont ->
         suspendedCoroutines.add(cont)
 
@@ -120,10 +124,19 @@ class BlockbookSocketService(val prefs: PreferenceHelper) {
         socket.send(body, Ack {
             Log.d(TAG, "ack: " + it[0])
             val response = it[0] as JSONObject
-            val result = response.get(RESULT)
-
+            when {
+                response.has(RESULT) -> {
+                    val result = response.get(RESULT)
+                    cont.resume(result)
+                }
+                response.has(ERROR) -> {
+                    val errorJson = response.getJSONObject(ERROR)
+                    val message = errorJson.getString(MESSAGE)
+                    cont.resumeWithException(BlockbookException(message))
+                }
+                else -> cont.resumeWithException(BlockbookException("Invalid response"))
+            }
             suspendedCoroutines.remove(cont)
-            cont.resume(result)
         })
     }
 

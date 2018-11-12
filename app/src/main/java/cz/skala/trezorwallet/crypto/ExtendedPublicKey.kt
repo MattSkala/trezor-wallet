@@ -78,7 +78,7 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
     fun getAddress(): String {
         val publicKeyEncoded = publicKey.getEncoded(true)
         val hash160 = hash160(publicKeyEncoded)
-        return encodeBase58Check(hash160, getPubkeyHash().toByte())
+        return encodeBase58Check(hash160, getPubkeyHashPrefix().toByte())
     }
 
     /**
@@ -88,18 +88,18 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
         val publicKeyEncoded = publicKey.getEncoded(true)
         val publicKeyHash = hash160(publicKeyEncoded)
         val scriptSig = ByteArray(publicKeyHash.size + 2)
-        scriptSig[0] = getPubkeyHash().toByte() // version 0
+        scriptSig[0] = 0 // version 0
         scriptSig[1] = 0x14 // push 20 bytes
         System.arraycopy(publicKeyHash, 0, scriptSig, 2, publicKeyHash.size)
         val scriptSigHash = hash160(scriptSig)
-        return encodeBase58Check(scriptSigHash, getScriptHash().toByte())
+        return encodeBase58Check(scriptSigHash, getScriptHashPrefix().toByte())
     }
 
-    private fun getPubkeyHash(): Int {
+    private fun getPubkeyHashPrefix(): Int {
         return if (TrezorApplication.isTestnet()) PREFIX_TESTNET_PUBKEY_HASH else PREFIX_PUBKEY_HASH
     }
 
-    private fun getScriptHash(): Int {
+    private fun getScriptHashPrefix(): Int {
         return if (TrezorApplication.isTestnet()) PREFIX_TESTNET_SCRIPT_HASH else PREFIX_SCRIPT_HASH
     }
 }

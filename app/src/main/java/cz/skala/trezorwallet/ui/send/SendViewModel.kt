@@ -4,6 +4,8 @@ import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import com.satoshilabs.trezor.intents.ui.data.SignTxRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
+import cz.skala.trezorwallet.BuildConfig
+import cz.skala.trezorwallet.TrezorApplication
 import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.compose.CoinSelector
 import cz.skala.trezorwallet.compose.FeeEstimator
@@ -43,6 +45,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     val recommendedFees = MutableLiveData<Map<FeeLevel, Int>>()
     val onTxSent = SingleLiveEvent<String>()
     val onInsufficientFunds = SingleLiveEvent<Nothing>()
+    val onError = SingleLiveEvent<String>()
     val sending = MutableLiveData<Boolean>()
 
     fun start() {
@@ -66,7 +69,9 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
             try {
                 val (tx, inputTransactions) =
                         composer.composeTransaction(accountId, address, amount, fee)
-                val signRequest = SignTxRequest(tx, inputTransactions)
+                val signRequest = SignTxRequest(tx, inputTransactions, BuildConfig.COIN_NAME,
+                        prefs.deviceState)
+
                 trezorRequest.value = signRequest
             } catch (e: InsufficientFundsException) {
                 onInsufficientFunds.call()
@@ -86,7 +91,7 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
                 onTxSent.value = txid
             } catch (e: Exception) {
                 e.printStackTrace()
-                onTxSent.value = null
+                onError.value = e.message
             } finally {
                 sending.value = false
             }
@@ -156,11 +161,17 @@ class SendViewModel(app: Application) : BaseViewModel(app) {
     }
 
     private fun validateBase58Address(address: String): Boolean {
-        return address.length in 26..35 && (address.startsWith("1") || address.startsWith("3"))
+        val validPrefix = if (TrezorApplication.isTestnet())
+            address.startsWith("m") || address.startsWith("n") ||
+                    address.startsWith("2") else
+            address.startsWith("1") || address.startsWith("3")
+        return address.length in 26..35 && validPrefix
     }
 
     private fun validateBech32Address(address: String): Boolean {
-        return address.length in 14..72 && address.startsWith("bc1")
+        val validPrefix = if (TrezorApplication.isTestnet())
+            address.startsWith("tb1") else address.startsWith("bc1")
+        return address.length in 14..72 && validPrefix
     }
 
     fun validateAmount(amount: Double): Boolean {

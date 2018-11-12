@@ -66,5 +66,18 @@ abstract class TransactionDao {
     }
 
     @Query("DELETE FROM transactions")
-    abstract fun deleteAll()
+    abstract fun deleteTransactions()
+
+    @Query("DELETE FROM transaction_inputs")
+    abstract fun deleteTransactionInputs()
+
+    @Query("DELETE FROM transaction_outputs")
+    abstract fun deleteTransactionOutputs()
+
+    @android.arch.persistence.room.Transaction
+    open fun deleteAll() {
+        deleteTransactions()
+        deleteTransactionInputs()
+        deleteTransactionOutputs()
+    }
 }

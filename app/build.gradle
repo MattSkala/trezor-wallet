@@ -38,17 +38,19 @@ android {
             signingConfig signingConfigs.release
         }
     }
-    flavorDimensions "coinType"
+    flavorDimensions "coin"
     productFlavors {
         btc {
-            dimension "coinType"
+            dimension "coin"
+            buildConfigField("String", "COIN_NAME", "\"Bitcoin\"")
             buildConfigField("int", "COIN_TYPE", "0")
             buildConfigField("String", "BLOCKBOOK_URL", "\"https://btc1.trezor.io\"")
         }
         btcTestnet {
-            dimension "coinType"
+            dimension "coin"
             applicationIdSuffix ".testnet"
             versionNameSuffix " Testnet"
+            buildConfigField("String", "COIN_NAME", "\"Testnet\"")
             buildConfigField("int", "COIN_TYPE", "1")
             buildConfigField("String", "BLOCKBOOK_URL", "\"https://tbtc1.trezor.io\"")
         }

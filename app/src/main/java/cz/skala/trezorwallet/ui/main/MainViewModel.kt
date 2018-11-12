@@ -6,6 +6,7 @@ import android.arch.lifecycle.MutableLiveData
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
 import cz.skala.trezorwallet.R
+import cz.skala.trezorwallet.blockbook.BlockbookException
 import cz.skala.trezorwallet.blockbook.BlockbookSocketService
 import cz.skala.trezorwallet.data.AppDatabase
 import cz.skala.trezorwallet.data.PreferenceHelper
@@ -73,7 +74,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                     accounts.forEach {
                         transactionRepository.refresh(it.id)
                     }
-                } catch (e: EngineIOException) {
+                } catch (e: BlockbookException) {
                     e.printStackTrace()
                 }
             }
@@ -88,7 +89,7 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
                     addresses.forEach {
                         transactionRepository.saveTx(tx, it.account)
                     }
-                } catch (e: EngineIOException) {
+                } catch (e: BlockbookException) {
                     e.printStackTrace()
                 }
             }
@@ -204,13 +205,17 @@ class MainViewModel(app: Application) : BaseViewModel(app) {
         blockbookSocketService.subscribeHashblock()
 
         withContext(Dispatchers.Default) {
-            // Subscribe to new transactions on external chain addresses
+            // Subscribe to new transactions on my addresses
             val accounts = database.accountDao().getAll()
             accounts.forEach {  account ->
-                val addresses = database.addressDao()
+                val externalChainAddresses = database.addressDao()
                         .getByAccount(account.id, false)
                         .map { it.address }
-                blockbookSocketService.subscribeAddressTxid(addresses)
+                val changeAddresses = database.addressDao()
+                        .getByAccount(account.id, true)
+                        .map { it.address }
+                blockbookSocketService.subscribeAddressTxid(externalChainAddresses)
+                blockbookSocketService.subscribeAddressTxid(changeAddresses)
             }
         }
     }
