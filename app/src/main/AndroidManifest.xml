@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="cz.skala.trezorwallet"
+<manifest package="com.mattskala.trezorwallet"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature android:name="android.hardware.usb.host" />
@@ -13,9 +13,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:name=".TrezorApplication">
+        android:name="com.mattskala.trezorwallet.TrezorApplication">
 
-        <activity android:name=".ui.main.MainActivity"
+        <activity android:name="com.mattskala.trezorwallet.ui.main.MainActivity"
                   android:theme="@style/AppTheme.NoActionBar"
                   android:launchMode="singleTop">
             <intent-filter>
@@ -25,16 +25,16 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.getstarted.GetStartedActivity"
+        <activity android:name="com.mattskala.trezorwallet.ui.getstarted.GetStartedActivity"
             android:launchMode="singleTop"/>
 
-        <activity android:name=".ui.addressdetail.AddressDetailActivity"
+        <activity android:name="com.mattskala.trezorwallet.ui.addressdetail.AddressDetailActivity"
             android:label="@string/address"
-            android:parentActivityName=".ui.main.MainActivity"/>
+            android:parentActivityName="com.mattskala.trezorwallet.ui.main.MainActivity"/>
 
-        <activity android:name=".ui.transactiondetail.TransactionDetailActivity"
+        <activity android:name="com.mattskala.trezorwallet.ui.transactiondetail.TransactionDetailActivity"
             android:label="@string/transaction"
-            android:parentActivityName=".ui.main.MainActivity"/>
+            android:parentActivityName="com.mattskala.trezorwallet.ui.main.MainActivity"/>
 
         <activity
             android:name="com.dropbox.core.android.AuthActivity"

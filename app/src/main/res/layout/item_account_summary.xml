@@ -8,7 +8,7 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <cz.skala.trezorwallet.ui.transactions.AccountSummaryItemView
+    <com.mattskala.trezorwallet.ui.transactions.AccountSummaryItemView
         android:id="@+id/itemBalance"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -17,7 +17,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintRight_toLeftOf="@id/itemRate"/>
 
-    <cz.skala.trezorwallet.ui.transactions.AccountSummaryItemView
+    <com.mattskala.trezorwallet.ui.transactions.AccountSummaryItemView
         android:id="@+id/itemRate"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -26,7 +26,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintRight_toRightOf="parent"/>
 
-    <cz.skala.trezorwallet.ui.transactions.AccountSummaryItemView
+    <com.mattskala.trezorwallet.ui.transactions.AccountSummaryItemView
         android:id="@+id/itemReceived"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -36,7 +36,7 @@
         app:layout_constraintTop_toBottomOf="@id/itemBalance"
         app:layout_constraintRight_toLeftOf="@id/itemSent"/>
 
-    <cz.skala.trezorwallet.ui.transactions.AccountSummaryItemView
+    <com.mattskala.trezorwallet.ui.transactions.AccountSummaryItemView
         android:id="@+id/itemSent"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
