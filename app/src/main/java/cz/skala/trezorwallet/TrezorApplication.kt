@@ -6,6 +6,11 @@ import cz.skala.trezorwallet.di.appModule
 import org.kodein.di.Kodein
 import org.kodein.di.KodeinAware
 import timber.log.Timber
+import com.crashlytics.android.Crashlytics
+import io.fabric.sdk.android.Fabric
+import com.crashlytics.android.core.CrashlyticsCore
+
+
 
 
 class TrezorApplication : Application(), KodeinAware {
@@ -28,6 +33,11 @@ class TrezorApplication : Application(), KodeinAware {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
+        val crashlyticsCore = CrashlyticsCore.Builder()
+                .disabled(BuildConfig.DEBUG)
+                .build()
+        Fabric.with(this, Crashlytics.Builder().core(crashlyticsCore).build())
 
         // Log exceptions from coroutines
         val currentUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()

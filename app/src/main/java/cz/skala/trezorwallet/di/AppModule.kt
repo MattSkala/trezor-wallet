@@ -34,7 +34,7 @@ fun appModule(applicationContext: Application): Kodein.Module {
         }
 
         bind<AccountDiscoveryManager>() with singleton {
-            AccountDiscoveryManager(instance())
+            AccountDiscoveryManager(instance(), instance())
         }
 
         bind<TransactionFetcher>() with singleton {
