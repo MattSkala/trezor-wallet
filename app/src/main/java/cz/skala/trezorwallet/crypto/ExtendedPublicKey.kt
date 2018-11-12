@@ -1,5 +1,7 @@
 package cz.skala.trezorwallet.crypto
 
+import cz.skala.trezorwallet.BuildConfig
+import cz.skala.trezorwallet.TrezorApplication
 import org.bouncycastle.crypto.ec.CustomNamedCurves
 import org.bouncycastle.math.ec.ECPoint
 import org.bouncycastle.math.ec.FixedPointCombMultiplier
@@ -14,6 +16,11 @@ import java.util.*
 class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
     companion object {
         const val HARDENED_IDX = 1L shl 31
+
+        private const val PREFIX_PUBKEY_HASH = 0
+        private const val PREFIX_SCRIPT_HASH = 5
+        private const val PREFIX_TESTNET_PUBKEY_HASH = 111
+        private const val PREFIX_TESTNET_SCRIPT_HASH = 196
 
         fun decodePublicKey(publicKeyEncoded: ByteArray): ECPoint {
             val curveParams = CustomNamedCurves.getByName(SECP256K1)
@@ -71,7 +78,7 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
     fun getAddress(): String {
         val publicKeyEncoded = publicKey.getEncoded(true)
         val hash160 = hash160(publicKeyEncoded)
-        return encodeBase58Check(hash160, 0)
+        return encodeBase58Check(hash160, getPubkeyHash().toByte())
     }
 
     /**
@@ -81,10 +88,18 @@ class ExtendedPublicKey(val publicKey: ECPoint, val chainCode: ByteArray) {
         val publicKeyEncoded = publicKey.getEncoded(true)
         val publicKeyHash = hash160(publicKeyEncoded)
         val scriptSig = ByteArray(publicKeyHash.size + 2)
-        scriptSig[0] = 0x00 // version 0
+        scriptSig[0] = getPubkeyHash().toByte() // version 0
         scriptSig[1] = 0x14 // push 20 bytes
         System.arraycopy(publicKeyHash, 0, scriptSig, 2, publicKeyHash.size)
         val scriptSigHash = hash160(scriptSig)
-        return encodeBase58Check(scriptSigHash, 5)
+        return encodeBase58Check(scriptSigHash, getScriptHash().toByte())
+    }
+
+    private fun getPubkeyHash(): Int {
+        return if (TrezorApplication.isTestnet()) PREFIX_TESTNET_PUBKEY_HASH else PREFIX_PUBKEY_HASH
+    }
+
+    private fun getScriptHash(): Int {
+        return if (TrezorApplication.isTestnet()) PREFIX_TESTNET_SCRIPT_HASH else PREFIX_SCRIPT_HASH
     }
 }

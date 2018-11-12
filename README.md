@@ -8,7 +8,7 @@
 
 ## Build
 Install the debug build:
-`./gradlew installDebug`
+`./gradlew installBtcDebug`
 
 Run unit tests:
 `./gradlew test`

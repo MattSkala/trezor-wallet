@@ -61,7 +61,7 @@ class SendFragment : BaseFragment() {
     @Suppress("DEPRECATION")
     private var progressDialog: ProgressDialog? = null
 
-    override fun provideOverridingModule() = Kodein.Module {
+    override fun provideOverridingModule() = Kodein.Module("Send") {
         bind<SendViewModel>() with provider {
             ViewModelProviders.of(this@SendFragment)[SendViewModel::class.java]
         }

@@ -5,6 +5,7 @@ import com.satoshilabs.trezor.intents.ui.data.GenericRequest
 import com.satoshilabs.trezor.intents.ui.data.TrezorRequest
 import com.satoshilabs.trezor.lib.protobuf.TrezorMessage
 import com.satoshilabs.trezor.lib.protobuf.TrezorType
+import cz.skala.trezorwallet.BuildConfig
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import java.security.InvalidKeyException
 
@@ -19,12 +20,11 @@ class AccountDiscoveryManager(val fetcher: TransactionFetcher) {
 
         const val PURPOSE_BIP44 = 44
         const val PURPOSE_BIP49 = 49
-        const val COIN_BITCOIN = 0
 
         fun createGetPublicKeyRequest(i: Int, legacy: Boolean): TrezorRequest {
             val purpose = if (legacy) ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP44 else
                 ExtendedPublicKey.HARDENED_IDX + PURPOSE_BIP49
-            val coinType = ExtendedPublicKey.HARDENED_IDX + COIN_BITCOIN
+            val coinType = ExtendedPublicKey.HARDENED_IDX + BuildConfig.COIN_TYPE
             val account = ExtendedPublicKey.HARDENED_IDX + i
             val message = TrezorMessage.GetPublicKey.newBuilder()
                     .addAddressN(purpose.toInt())

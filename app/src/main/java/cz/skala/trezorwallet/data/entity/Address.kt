@@ -3,6 +3,7 @@ package cz.skala.trezorwallet.data.entity
 import android.annotation.SuppressLint
 import android.arch.persistence.room.Entity
 import android.os.Parcelable
+import cz.skala.trezorwallet.BuildConfig
 import cz.skala.trezorwallet.crypto.ExtendedPublicKey
 import kotlinx.android.parcel.Parcelize
 
@@ -23,7 +24,7 @@ class Address(
     fun getPath(account: Account): IntArray {
         val path = IntArray(5)
         path[0] = (ExtendedPublicKey.HARDENED_IDX + if (account.legacy) 44 else 49).toInt()
-        path[1] = (ExtendedPublicKey.HARDENED_IDX + 0).toInt()
+        path[1] = (ExtendedPublicKey.HARDENED_IDX + BuildConfig.COIN_TYPE).toInt()
         path[2] = (ExtendedPublicKey.HARDENED_IDX + account.index).toInt()
         path[3] = if (change) 1 else 0
         path[4] = index
@@ -33,10 +34,10 @@ class Address(
     fun getPathString(account: Account): String {
         var path = "m"
         path += if (account.legacy) "/44'" else "/49'"
-        path += "/0'"
+        path += "/" + BuildConfig.COIN_TYPE + "'"
         path += "/" + account.index + "'"
         path += if (change) "/1" else "/0"
-        path += "/" + index
+        path += "/$index"
         return path
     }
 }

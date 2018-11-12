@@ -38,6 +38,21 @@ android {
             signingConfig signingConfigs.release
         }
     }
+    flavorDimensions "coinType"
+    productFlavors {
+        btc {
+            dimension "coinType"
+            buildConfigField("int", "COIN_TYPE", "0")
+            buildConfigField("String", "BLOCKBOOK_URL", "\"https://btc1.trezor.io\"")
+        }
+        btcTestnet {
+            dimension "coinType"
+            applicationIdSuffix ".testnet"
+            versionNameSuffix " Testnet"
+            buildConfigField("int", "COIN_TYPE", "1")
+            buildConfigField("String", "BLOCKBOOK_URL", "\"https://tbtc1.trezor.io\"")
+        }
+    }
 }
 
 androidExtensions {

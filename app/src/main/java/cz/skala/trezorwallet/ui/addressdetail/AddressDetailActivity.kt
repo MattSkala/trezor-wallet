@@ -1,6 +1,7 @@
 package cz.skala.trezorwallet.ui.addressdetail
 
 import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -21,9 +22,13 @@ import cz.skala.trezorwallet.data.entity.Address
 import cz.skala.trezorwallet.labeling.LabelingManager
 import cz.skala.trezorwallet.ui.BaseActivity
 import cz.skala.trezorwallet.ui.LabelDialogFragment
+import cz.skala.trezorwallet.ui.send.SendViewModel
 import kotlinx.android.synthetic.main.activity_address_detail.*
 import net.glxn.qrgen.android.QRCode
+import org.kodein.di.Kodein
+import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 
 
 /**
@@ -39,6 +44,11 @@ class AddressDetailActivity : BaseActivity(), LabelDialogFragment.EditTextDialog
     private val labeling: LabelingManager by instance()
     private val prefs: PreferenceHelper by instance()
 
+    override fun provideOverridingModule() = Kodein.Module("AddressDetail") {
+        bind<AddressDetailViewModel>() with provider {
+            ViewModelProviders.of(this@AddressDetailActivity)[AddressDetailViewModel::class.java]
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

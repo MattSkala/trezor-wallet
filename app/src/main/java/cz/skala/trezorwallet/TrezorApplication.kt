@@ -15,7 +15,11 @@ class TrezorApplication : Application(), KodeinAware {
 
     companion object {
         const val DATABASE_NAME = "trezor-wallet"
-        const val BLOCKBOOK_API_URL = "https://btc1.trezor.io"
+        const val BLOCKBOOK_API_URL = BuildConfig.BLOCKBOOK_URL
+
+        fun isTestnet(): Boolean {
+            return BuildConfig.FLAVOR == "btcTestnet"
+        }
     }
 
     override fun onCreate() {
