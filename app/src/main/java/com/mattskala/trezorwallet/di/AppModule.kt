@@ -4,7 +4,7 @@ import android.app.Application
 import android.arch.persistence.room.Room
 import com.mattskala.trezorwallet.TrezorApplication
 import com.mattskala.trezorwallet.blockbook.BlockbookSocketService
-import com.mattskala.trezorwallet.coinmarketcap.CoinMarketCapClient
+import com.mattskala.trezorwallet.coingecko.CoinGeckoClient
 import com.mattskala.trezorwallet.compose.CoinSelector
 import com.mattskala.trezorwallet.compose.FeeEstimator
 import com.mattskala.trezorwallet.compose.FifoCoinSelector
@@ -41,8 +41,8 @@ fun appModule(applicationContext: Application): Kodein.Module {
             TransactionFetcher(instance(), instance())
         }
 
-        bind<CoinMarketCapClient>() with singleton {
-            CoinMarketCapClient()
+        bind<CoinGeckoClient>() with singleton {
+            CoinGeckoClient()
         }
 
         bind<PreferenceHelper>() with singleton {

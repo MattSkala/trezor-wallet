@@ -1,17 +1,18 @@
-package com.mattskala.trezorwallet.coinmarketcap
+package com.mattskala.trezorwallet.coingecko
 
 import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.IOException
 
 /**
- * A client for fetching Bitcoin exchange rate from CoinMarketCap API.
+ * A client for fetching Bitcoin exchange rate from CoinGecko API.
  */
-class CoinMarketCapClient {
+class CoinGeckoClient {
     companion object {
-        private const val API_URL = "https://api.coinmarketcap.com/v1/ticker/bitcoin/"
+        private const val API_URL = "https://api.coingecko.com/api/v3/coins/bitcoin"
     }
 
     private val client = OkHttpClient()
@@ -24,12 +25,12 @@ class CoinMarketCapClient {
      */
     @Throws(IOException::class)
     suspend fun fetchRate(currency: String): Double {
-        val url = "$API_URL?convert=$currency"
+        val url = "$API_URL?tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false"
         val body = fetchStringBody(url)
-        val jsonArray = JSONArray(body)
-        val jsonItem = jsonArray.getJSONObject(0)
-        val price = jsonItem.getString("price_" + currency.toLowerCase())
-        return price.toDouble()
+        val json = JSONObject(body)
+        return json.getJSONObject("market_data")
+                .getJSONObject("current_price")
+                .getDouble(currency.toLowerCase())
     }
 
     @Throws(IOException::class)

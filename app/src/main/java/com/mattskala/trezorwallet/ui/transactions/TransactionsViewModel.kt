@@ -3,7 +3,7 @@ package com.mattskala.trezorwallet.ui.transactions
 import android.app.Application
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
-import com.mattskala.trezorwallet.coinmarketcap.CoinMarketCapClient
+import com.mattskala.trezorwallet.coingecko.CoinGeckoClient
 import com.mattskala.trezorwallet.data.AppDatabase
 import com.mattskala.trezorwallet.data.PreferenceHelper
 import com.mattskala.trezorwallet.data.entity.Account
@@ -28,7 +28,7 @@ import java.io.IOException
  */
 class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware {
     private val database: AppDatabase by instance()
-    private val coinMarketCapClient: CoinMarketCapClient by instance()
+    private val tickerClient: CoinGeckoClient by instance()
     private val prefs: PreferenceHelper by instance()
     private val transactionRepository: TransactionRepository by instance()
     private val balanceCalculator: BalanceCalculator by instance()
@@ -103,9 +103,9 @@ class TransactionsViewModel(app: Application) : BaseViewModel(app), KodeinAware 
 
     private fun fetchRate() = viewModelScope.launch {
         try {
-            prefs.rate = coinMarketCapClient.fetchRate(prefs.currencyCode).toFloat()
+            prefs.rate = tickerClient.fetchRate(prefs.currencyCode).toFloat()
             updateItems()
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
