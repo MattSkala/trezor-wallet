@@ -23,7 +23,7 @@ class TrezorApplication : Application(), KodeinAware {
         const val BLOCKBOOK_API_URL = BuildConfig.BLOCKBOOK_URL
 
         fun isTestnet(): Boolean {
-            return BuildConfig.FLAVOR == "btcTestnet"
+            return BuildConfig.FLAVOR == "bitcoinTestnet"
         }
     }
 
